@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../Home_Page/home_page.dart';
 
 class DateOfBirthScreen extends StatefulWidget {
   const DateOfBirthScreen({super.key});
@@ -527,14 +528,12 @@ class _DateOfBirthScreenState extends State<DateOfBirthScreen>
     return _AnimatedCheckButton(
       onTap: isEligible
           ? () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Selected Date: $_selectedDay/${_selectedMonth.toString().padLeft(2, '0')}/$_selectedYear',
-                    style: GoogleFonts.plusJakartaSans(),
-                  ),
-                  duration: const Duration(seconds: 2),
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const HomePage(),
                 ),
+                (route) => false,
               );
             }
           : null,
