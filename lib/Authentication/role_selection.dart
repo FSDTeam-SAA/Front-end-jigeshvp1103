@@ -271,7 +271,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                     ),
                   ],
                 ),
-
+                SizedBox(height: 10 * py),
                 // ── Options Section (Student, Instructor, Other) ──────
                 FadeTransition(
                   opacity: _optionsFade,
@@ -284,17 +284,56 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                         _buildRoleOption('Instructor', px, py),
                         SizedBox(height: 12 * px),
                         _buildRoleOption('Other', px, py),
+                        
+                        // Conditionally visible warning message
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          height: _selectedRole != 'Student' ? 34 * py : 0,
+                          curve: Curves.easeInOut,
+                          child: SingleChildScrollView(
+                            physics: const NeverScrollableScrollPhysics(),
+                            child: Column(
+                              children: [
+                                SizedBox(height: 16 * py),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.error_outline_rounded,
+                                      color: const Color(0xFFFF6E00), // #FF6E00 warning color
+                                      size: 16 * px,
+                                    ),
+                                    SizedBox(width: 8 * px),
+                                    Text(
+                                      'Squarle is intended for student use only.',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 14 * px,
+                                        fontWeight: FontWeight.w400,
+                                        color: const Color(0xFFFF6E00),
+                                        height: 1.0, // 100% line height
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ),
 
                 // ── Check Button Section ─────────────────────────────
-                FadeTransition(
-                  opacity: _buttonFade,
-                  child: ScaleTransition(
-                    scale: _buttonScale,
-                    child: _buildCheckButton(px, py),
+                Padding(
+                  padding: EdgeInsets.only(top: 26 * py),
+                  child: FadeTransition(
+                    opacity: _buttonFade,
+                    child: ScaleTransition(
+                      scale: _buttonScale,
+                      child: _buildCheckButton(px, py),
+                    ),
                   ),
                 ),
               ],
@@ -390,19 +429,22 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
 
   // ── Bottom Check Button ───────────────────────────────────────────
   Widget _buildCheckButton(double px, double py) {
+    final bool isStudent = _selectedRole == 'Student';
     return _AnimatedCheckButton(
-      onTap: () {
-        // Go to next page or perform submission
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Selected Role: $_selectedRole',
-              style: GoogleFonts.plusJakartaSans(),
-            ),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      },
+      onTap: isStudent
+          ? () {
+              // Go to next page or perform submission
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Selected Role: $_selectedRole',
+                    style: GoogleFonts.plusJakartaSans(),
+                  ),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          : null,
       px: px,
     );
   }
@@ -410,7 +452,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
 
 // ── Animated Check Button with scale on press ──────────────────────
 class _AnimatedCheckButton extends StatefulWidget {
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final double px;
 
   const _AnimatedCheckButton({required this.onTap, required this.px});
@@ -445,33 +487,41 @@ class _AnimatedCheckButtonState extends State<_AnimatedCheckButton>
 
   @override
   Widget build(BuildContext context) {
+    final bool isEnabled = widget.onTap != null;
+
     return GestureDetector(
-      onTapDown: (_) => _btnPressController.forward(),
-      onTapUp: (_) => _btnPressController.reverse(),
-      onTapCancel: () => _btnPressController.reverse(),
+      onTapDown: isEnabled ? (_) => _btnPressController.forward() : null,
+      onTapUp: isEnabled ? (_) => _btnPressController.reverse() : null,
+      onTapCancel: isEnabled ? () => _btnPressController.reverse() : null,
       onTap: widget.onTap,
       child: ScaleTransition(
         scale: _btnPressScale,
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           width: 64 * widget.px, // Figma: Width 64px
           height: 64 * widget.px, // Figma: Height 64px
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFF58AAE3), // Figma: #58AAE3
-                Color(0xFF1F7FC9), // Figma: #1F7FC9
-              ],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x3D1F7FC9),
-                blurRadius: 12,
-                offset: Offset(0, 4),
-              ),
-            ],
+            color: isEnabled ? null : const Color(0xFF9BCDF3), // Solid disabled color
+            gradient: isEnabled
+                ? const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0xFF58AAE3), // Figma: #58AAE3
+                      Color(0xFF1F7FC9), // Figma: #1F7FC9
+                    ],
+                  )
+                : null,
+            boxShadow: isEnabled
+                ? [
+                    const BoxShadow(
+                      color: Color(0x3D1F7FC9),
+                      blurRadius: 12,
+                      offset: Offset(0, 4),
+                    ),
+                  ]
+                : null,
           ),
           child: Center(
             child: Icon(
