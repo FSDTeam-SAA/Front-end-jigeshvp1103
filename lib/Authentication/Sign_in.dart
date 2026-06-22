@@ -128,6 +128,84 @@ class _SignInScreenState extends State<SignInScreen>
     });
   }
 
+  void _showSchoolEmailDialog(BuildContext context, double px, double py) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.7), // 70% black overlay
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16 * px), // 16px radius
+          ),
+          child: SizedBox(
+            width: 246 * px,  // Fixed 246px width
+            height: 193 * py, // Fixed 193px height
+            child: Padding(
+              padding: EdgeInsets.all(8 * px), // 8px padding
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // ── Warning Icon (weui:error-outlined) ──
+                  Container(
+                    width: 31 * px,  // 31px width
+                    height: 31 * px, // 31px height
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF6E00).withOpacity(0.1), // 10% opacity for soft light orange background
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Container(
+                        width: 17 * px,
+                        height: 17 * px,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFF6E00), // solid orange
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '!',
+                            style: GoogleFonts.plusJakartaSans(
+                              color: Colors.white,
+                              fontSize: 12 * px,
+                              fontWeight: FontWeight.bold,
+                              height: 1.0,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16 * py), // 16px gap
+                  // ── Warning Text ──
+                  SizedBox(
+                    width: 196 * px, // Fixed 196px width
+                    height: 63 * py, // Fixed 63px height
+                    child: Center(
+                      child: Text(
+                        'You must use the email address given to you by your school.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14 * px,              // 14px font size
+                          fontWeight: FontWeight.w400,    // 400 Regular
+                          color: const Color(0xFFFF6E00), // #FF6E00
+                          height: 1.5,                    // 150% line height
+                          letterSpacing: 0,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -189,7 +267,7 @@ class _SignInScreenState extends State<SignInScreen>
                 scale: _cornerScale,
                 alignment: Alignment.bottomLeft,
                 child: Image.asset(
-                  'assets/images/corner.png',
+                  'assets/images/bottom_corner.png',
                   width:  20 * px,
                   height: 20 * px,
                   fit: BoxFit.contain,
@@ -245,7 +323,7 @@ class _SignInScreenState extends State<SignInScreen>
                           fontSize:      16 * px,
                           fontWeight:    FontWeight.w400,
                           color:         const Color(0xFF6A6A6A),
-                          height:        1.2,
+                          height:        1.2, // 120%
                           letterSpacing: 0,
                         ),
                       ),
@@ -268,6 +346,7 @@ class _SignInScreenState extends State<SignInScreen>
                       radius:   btnRadius,
                       iconSize: 20 * px,
                       px:       px,
+                      onTap:    () => _showSchoolEmailDialog(context, px, py),
                     ),
                   ),
                 ),
@@ -287,6 +366,7 @@ class _SignInScreenState extends State<SignInScreen>
                       radius:   btnRadius,
                       iconSize: 20 * px,
                       px:       px,
+                      onTap:    () => _showSchoolEmailDialog(context, px, py),
                     ),
                   ),
                 ),
@@ -310,6 +390,7 @@ class _AnimatedSocialButton extends StatefulWidget {
   final double radius;
   final double iconSize;
   final double px;
+  final VoidCallback onTap;
 
   const _AnimatedSocialButton({
     required this.icon,
@@ -319,6 +400,7 @@ class _AnimatedSocialButton extends StatefulWidget {
     required this.radius,
     required this.iconSize,
     required this.px,
+    required this.onTap,
   });
 
   @override
@@ -355,7 +437,7 @@ class _AnimatedSocialButtonState extends State<_AnimatedSocialButton>
       onTapDown:    (_) => _pressController.forward(),
       onTapUp:      (_) => _pressController.reverse(),
       onTapCancel:  ()  => _pressController.reverse(),
-      onTap:        ()  {},
+      onTap:        widget.onTap,
       child: ScaleTransition(
         scale: _pressScale,
         child: Container(
