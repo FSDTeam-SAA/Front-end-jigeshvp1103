@@ -11,18 +11,29 @@ class ClassItem {
 
 typedef _ClassItem = ClassItem;
 
-
 // ── Dummy semesters ────────────────────────────────────────────────
 final List<Map<String, dynamic>> _semesters = [
   {
     'label': 'Spring 2026',
     'classes': [
       _ClassItem(name: 'Database System', teacher: 'Abernathy, Mr.'),
-      _ClassItem(name: 'Climate Change: Global Impact and future...', teacher: 'Abernathy, M.'),
-      _ClassItem(name: 'Data Structures and Algorithms', teacher: 'Abernathy, M.'),
+      _ClassItem(
+        name: 'Climate Change: Global Impact and future...',
+        teacher: 'Abernathy, M.',
+      ),
+      _ClassItem(
+        name: 'Data Structures and Algorithms',
+        teacher: 'Abernathy, M.',
+      ),
       _ClassItem(name: 'Operating Systems', teacher: 'Abernathy, M.'),
-      _ClassItem(name: 'Advanced Topics in Distributed Systems and...', teacher: 'Abernathy, M.'),
-      _ClassItem(name: 'Advanced Global Environmental Policy...', teacher: 'Abernathy, M.'),
+      _ClassItem(
+        name: 'Advanced Topics in Distributed Systems and...',
+        teacher: 'Abernathy, M.',
+      ),
+      _ClassItem(
+        name: 'Advanced Global Environmental Policy...',
+        teacher: 'Abernathy, M.',
+      ),
       _ClassItem(name: 'Database System', teacher: 'Abernathy, M.'),
       _ClassItem(name: 'Database System', teacher: 'Abernathy, M.'),
     ],
@@ -31,7 +42,10 @@ final List<Map<String, dynamic>> _semesters = [
     'label': 'Spring 2027',
     'classes': [
       _ClassItem(name: 'Database System', teacher: 'Abernathy, M.'),
-      _ClassItem(name: 'Climate Change: Global Impact and future...', teacher: 'Abernathy, M.'),
+      _ClassItem(
+        name: 'Climate Change: Global Impact and future...',
+        teacher: 'Abernathy, M.',
+      ),
       _ClassItem(name: 'Database System', teacher: 'Abernathy, M.'),
       _ClassItem(name: 'Database System', teacher: 'Abernathy, M.'),
     ],
@@ -63,12 +77,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   // ── Entrance animations ─────────────────────────────────────────
   late AnimationController _headerController;
-  late Animation<double>   _headerFade;
-  late Animation<Offset>   _headerSlide;
+  late Animation<double> _headerFade;
+  late Animation<Offset> _headerSlide;
 
   late AnimationController _contentController;
-  late Animation<double>   _contentFade;
-  late Animation<Offset>   _contentSlide;
+  late Animation<double> _contentFade;
+  late Animation<Offset> _contentSlide;
 
   @override
   void initState() {
@@ -87,12 +101,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _headerFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _headerController, curve: Curves.easeOut),
     );
-    _headerSlide = Tween<Offset>(
-      begin: const Offset(0, -0.4),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _headerController, curve: Curves.easeOutCubic),
-    );
+    _headerSlide = Tween<Offset>(begin: const Offset(0, -0.4), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _headerController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
     // ── Content fade-up ────────────────────────────────
     _contentController = AnimationController(
@@ -102,12 +117,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _contentFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _contentController, curve: Curves.easeOut),
     );
-    _contentSlide = Tween<Offset>(
-      begin: const Offset(0, 0.12),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _contentController, curve: Curves.easeOutCubic),
-    );
+    _contentSlide =
+        Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _contentController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
     _headerController.forward();
     Future.delayed(const Duration(milliseconds: 180), () {
@@ -131,25 +147,24 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final double w  = MediaQuery.of(context).size.width;
-    final double h  = MediaQuery.of(context).size.height;
+    final double w = MediaQuery.of(context).size.width;
+    final double h = MediaQuery.of(context).size.height;
     final double px = w / 393;
     final double py = h / 852;
 
     // Figma: Header top 68px, left 16px, width 361px, height 40px
-    final double headerLeft  = 16 * px;
-    final double headerTop   = 68 * py;
+    final double headerLeft = 16 * px;
+    final double headerTop = 68 * py;
     final double headerWidth = 361 * px;
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-
           // ── Header (Search + JP Avatar) ───────────────────────────
           Positioned(
-            top:   headerTop,
-            left:  headerLeft,
+            top: headerTop,
+            left: headerLeft,
             width: headerWidth,
             child: FadeTransition(
               opacity: _headerFade,
@@ -161,25 +176,52 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     // Search icon — 40×40
                     GestureDetector(
                       onTap: () {
-                        Navigator.push(
+                        Navigator.push<Map<String, dynamic>>(
                           context,
                           PageRouteBuilder(
-                            pageBuilder: (context, animation, secondaryAnimation) => SearchScreen(
-                              allClasses: _pages.expand((p) => p).toList(),
+                            pageBuilder:
+                                (context, animation, secondaryAnimation) =>
+                                    SearchScreen(
+                                      addedClasses: _pages,
+                                      semesters: _semesters,
+                                    ),
+                            transitionsBuilder:
+                                (
+                                  context,
+                                  animation,
+                                  secondaryAnimation,
+                                  child,
+                                ) {
+                                  return FadeTransition(
+                                    opacity: animation,
+                                    child: child,
+                                  );
+                                },
+                            transitionDuration: const Duration(
+                              milliseconds: 200,
                             ),
-                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                              return FadeTransition(
-                                opacity: animation,
-                                child: child,
-                              );
-                            },
-                            transitionDuration: const Duration(milliseconds: 200),
                           ),
-                        );
+                        ).then((result) {
+                          if (result != null) {
+                            final String semesterLabel =
+                                result['semesterLabel'] as String;
+                            final ClassItem classItem =
+                                result['classItem'] as ClassItem;
+
+                            final index = _semesters.indexWhere(
+                              (s) => s['label'] == semesterLabel,
+                            );
+                            if (index != -1) {
+                              setState(() {
+                                _pages[index].add(classItem);
+                              });
+                            }
+                          }
+                        });
                       },
                       child: Image.asset(
                         'assets/images/search.png',
-                        width:  40 * px,
+                        width: 40 * px,
                         height: 40 * px,
                         fit: BoxFit.contain,
                       ),
@@ -197,9 +239,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
           // ── Main content (title + list + dots) ───────────────────
           Positioned(
-            top:    headerTop + 40 * py + 16 * py,  // below header with 16px gap
-            left:   headerLeft,
-            right:  headerLeft,
+            top: headerTop + 40 * py + 16 * py, // below header with 16px gap
+            left: headerLeft,
+            right: headerLeft,
             bottom: 0,
             child: FadeTransition(
               opacity: _contentFade,
@@ -210,22 +252,21 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   itemCount: _semesters.length,
                   onPageChanged: (i) => setState(() => _currentPage = i),
                   itemBuilder: (context, pageIndex) {
-                    final String label   = _semesters[pageIndex]['label'];
+                    final String label = _semesters[pageIndex]['label'];
                     final List<_ClassItem> items = _pages[pageIndex];
 
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-
                         // ── Semester label ────────────────────────
                         // Figma: 361×24, Plus Jakarta Sans 600, 20px, #2B88CF, 120% lh
                         Text(
                           label,
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize:   20 * px,
+                            fontSize: 20 * px,
                             fontWeight: FontWeight.w600,
-                            color:      const Color(0xFF2B88CF),
-                            height:     1.2,
+                            color: const Color(0xFF2B88CF),
+                            height: 1.2,
                           ),
                         ),
 
@@ -237,10 +278,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             physics: const BouncingScrollPhysics(),
                             padding: EdgeInsets.only(bottom: 80 * py),
                             itemCount: items.length,
-                            separatorBuilder: (_, index) => SizedBox(height: 0),
+                            separatorBuilder: (_, index) =>
+                                SizedBox(height: 8 * py),
                             itemBuilder: (context, i) {
                               return _SwipeToRemoveTile(
-                                key: ValueKey('${pageIndex}_${items[i].name}_$i'),
+                                key: ValueKey(
+                                  '${pageIndex}_${items[i].name}_$i',
+                                ),
                                 item: items[i],
                                 px: px,
                                 py: py,
@@ -260,8 +304,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           // ── Page indicator dots ───────────────────────────────────
           Positioned(
             bottom: 36 * py,
-            left:   0,
-            right:  0,
+            left: 0,
+            right: 0,
             child: FadeTransition(
               opacity: _contentFade,
               child: Row(
@@ -270,11 +314,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   final bool isActive = i == _currentPage;
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
-                    margin:         EdgeInsets.symmetric(horizontal: 4 * px),
-                    width:  isActive ? 24 * px : 8 * px,
+                    margin: EdgeInsets.symmetric(horizontal: 4 * px),
+                    width: isActive ? 24 * px : 8 * px,
                     height: 8 * px,
                     decoration: BoxDecoration(
-                      color:        isActive
+                      color: isActive
                           ? const Color(0xFF2B88CF)
                           : const Color(0xFFD9D9D9),
                       borderRadius: BorderRadius.circular(4 * px),
@@ -292,22 +336,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   // ── JP Avatar ─────────────────────────────────────────────────────
   Widget _buildProfileAvatar(double px) {
     return Container(
-      width:  40 * px,
+      width: 40 * px,
       height: 40 * px,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(
-          color: const Color(0xFF2D2D2D),
-          width: 1.5 * px,
-        ),
+        border: Border.all(color: const Color(0xFF2D2D2D), width: 1.5 * px),
       ),
       child: Center(
         child: Text(
           'JP',
           style: GoogleFonts.plusJakartaSans(
-            fontSize:   14 * px,
+            fontSize: 14 * px,
             fontWeight: FontWeight.w600,
-            color:      const Color(0xFF2D2D2D),
+            color: const Color(0xFF2D2D2D),
           ),
         ),
       ),
@@ -322,8 +363,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 // ═══════════════════════════════════════════════════════════════════
 class _SwipeToRemoveTile extends StatefulWidget {
   final _ClassItem item;
-  final double     px;
-  final double     py;
+  final double px;
+  final double py;
   final VoidCallback onRemove;
 
   const _SwipeToRemoveTile({
@@ -341,7 +382,7 @@ class _SwipeToRemoveTile extends StatefulWidget {
 class _SwipeToRemoveTileState extends State<_SwipeToRemoveTile>
     with SingleTickerProviderStateMixin {
   late AnimationController _removeController;
-  late Animation<double>   _removeAnim;
+  late Animation<double> _removeAnim;
 
   @override
   void initState() {
@@ -373,65 +414,65 @@ class _SwipeToRemoveTileState extends State<_SwipeToRemoveTile>
     return SizeTransition(
       sizeFactor: _removeAnim,
       axisAlignment: -1,
-      child: Dismissible(
-        key: widget.key!,
-        direction: DismissDirection.endToStart,   // swipe LEFT
-        confirmDismiss: (_) async {
-          _animateRemove();
-          return false; // we handle removal ourselves via animation
-        },
-        background: Container(color: Colors.transparent),
-        secondaryBackground: Container(
-          // Figma: bg #FFCBCB, minus icon centered
-          color: const Color(0xFFFFCBCB),
-          alignment: Alignment.centerRight,
-          padding: EdgeInsets.only(right: 20 * px),
-          child: Container(
-            width:  28 * px,
-            height: 28 * px,
-            decoration: const BoxDecoration(
-              color:  Color(0xFFFF5A5A),
-              shape:  BoxShape.circle,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8 * px),
+        child: Dismissible(
+          key: widget.key!,
+          direction: DismissDirection.endToStart, // swipe LEFT
+          confirmDismiss: (_) async {
+            _animateRemove();
+            return false; // we handle removal ourselves via animation
+          },
+          background: Container(color: Colors.transparent),
+          secondaryBackground: Container(
+            // Figma: bg #FFCBCB, minus icon centered
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFCBCB),
+              borderRadius: BorderRadius.circular(0 * px),
             ),
+            alignment: Alignment.centerRight,
+            padding: EdgeInsets.only(right: 20 * px),
             child: Icon(
               Icons.remove_rounded,
-              color: Colors.white,
-              size:  16 * px,
+              color: const Color(0xFFFF5A5A),
+              size: 24 * px,
             ),
           ),
-        ),
-        child: Container(
-          width:   double.infinity,
-          padding: EdgeInsets.symmetric(horizontal: 16 * px, vertical: 10 * py),
-          decoration: const BoxDecoration(
-            color: Color(0xFFF7F7F7),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                widget.item.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize:   14 * px,
-                  fontWeight: FontWeight.w500,
-                  color:      const Color(0xFF1A1C1E),
-                  height:     1.3,
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              horizontal: 16 * px,
+              vertical: 12 * py,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7F7F7),
+              borderRadius: BorderRadius.circular(8 * px),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  widget.item.name,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14 * px,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF1A1C1E),
+                    height: 1.3,
+                  ),
                 ),
-              ),
-              SizedBox(height: 2 * py),
-              Text(
-                widget.item.teacher,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize:   12 * px,
-                  fontWeight: FontWeight.w400,
-                  color:      const Color(0xFF888888),
-                  height:     1.3,
+                SizedBox(height: 4 * py),
+                Text(
+                  widget.item.teacher,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12 * px,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF888888),
+                    height: 1.3,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
