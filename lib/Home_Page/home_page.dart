@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'search.dart';
 
 // ── Dummy model ────────────────────────────────────────────────────
-class _ClassItem {
+class ClassItem {
   final String name;
   final String teacher;
-  _ClassItem({required this.name, required this.teacher});
+  ClassItem({required this.name, required this.teacher});
 }
+
+typedef _ClassItem = ClassItem;
+
 
 // ── Dummy semesters ────────────────────────────────────────────────
 final List<Map<String, dynamic>> _semesters = [
@@ -156,7 +160,23 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   children: [
                     // Search icon — 40×40
                     GestureDetector(
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder: (context, animation, secondaryAnimation) => SearchScreen(
+                              allClasses: _pages.expand((p) => p).toList(),
+                            ),
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              return FadeTransition(
+                                opacity: animation,
+                                child: child,
+                              );
+                            },
+                            transitionDuration: const Duration(milliseconds: 200),
+                          ),
+                        );
+                      },
                       child: Image.asset(
                         'assets/images/search.png',
                         width:  40 * px,
