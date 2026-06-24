@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'home_page.dart';
+import '../Add_Class/add_class.dart';
 
 // ════════════════════════════════════════════════════════════════════
 // SearchScreen  – Figma: canvas 393 × 852 px
@@ -244,39 +245,49 @@ class _SearchScreenState extends State<SearchScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Floating + Button
-                if (_query.isNotEmpty && _groupedResults.isNotEmpty)
-                  GestureDetector(
-                    onTap: () {
-                      if (canAdd) {
-                        _addAndPop();
-                      }
-                    },
-                    child: Container(
-                      width:  48 * px,
-                      height: 48 * px,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin:  Alignment.topLeft,
-                          end:    Alignment.bottomRight,
-                          colors: [Color(0xFF58AAE3), Color(0xFF1F7FC9)],
+                GestureDetector(
+                  onTap: () async {
+                    final result = await Navigator.push<Map<String, dynamic>>(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation, secondaryAnimation) =>
+                            AddClassScreen(semesters: widget.semesters),
+                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                          return FadeTransition(opacity: animation, child: child);
+                        },
+                        transitionDuration: const Duration(milliseconds: 250),
+                      ),
+                    );
+                    if (result != null && context.mounted) {
+                      Navigator.pop(context, result);
+                    }
+                  },
+                  child: Container(
+                    width:  48 * px,
+                    height: 48 * px,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin:  Alignment.topLeft,
+                        end:    Alignment.bottomRight,
+                        colors: [Color(0xFF58AAE3), Color(0xFF1F7FC9)],
+                      ),
+                      borderRadius: BorderRadius.circular(50 * px),
+                      boxShadow: const [
+                        BoxShadow(
+                          color:       Color(0x40000000),
+                          offset:      Offset(0, 2),
+                          blurRadius:  8,
+                          spreadRadius: 0,
                         ),
-                        borderRadius: BorderRadius.circular(50 * px),
-                        boxShadow: const [
-                          BoxShadow(
-                            color:       Color(0x40000000), // #000000 at 25%
-                            offset:      Offset(0, 2),
-                            blurRadius:  8,
-                            spreadRadius: 0,
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.add_rounded,
-                        color: Colors.white,
-                        size:  24 * px,
-                      ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.add_rounded,
+                      color: Colors.white,
+                      size:  24 * px,
                     ),
                   ),
+                ),
                 
                 // Warning Message
                 if (validationError != null) ...[
