@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:jigeshvp1103/Add_Class/add_class.dart';
 import '../models/class_item.dart';
 
 // ════════════════════════════════════════════════════════════════════
@@ -588,3 +589,92 @@ class _SearchScreenState extends State<SearchScreen>
     );
   }
 }
+
+class _PremiumTap extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onTap;
+  final bool haptic;
+
+  const _PremiumTap({
+    required this.child,
+    required this.onTap,
+    this.haptic = false,
+  });
+
+  @override
+  State<_PremiumTap> createState() => _PremiumTapState();
+}
+
+class _PremiumTapState extends State<_PremiumTap>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 90),
+      reverseDuration: const Duration(milliseconds: 170),
+    );
+    _scale = Tween<double>(
+      begin: 1,
+      end: 0.94,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) => _controller.reverse(),
+      onTapCancel: () => _controller.reverse(),
+      onTap: () {
+        if (widget.haptic) HapticFeedback.selectionClick();
+        widget.onTap();
+      },
+      child: ScaleTransition(scale: _scale, child: widget.child),
+    );
+  }
+}
+
+class _ResultEntrance extends StatelessWidget {
+  final int index;
+  final double px;
+  final Widget child;
+
+  const _ResultEntrance({
+    required this.index,
+    required this.px,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final int delay = (index * 24).clamp(0, 220);
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: 1),
+      duration: Duration(milliseconds: 330 + delay),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, (1 - value) * 10 * px),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+}
+

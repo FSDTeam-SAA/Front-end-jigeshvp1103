@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:jigeshvp1103/models/class_item.dart';
 
 import '../Home_Page/home_page.dart';
 
@@ -154,11 +155,21 @@ class _AddClassScreenState extends State<AddClassScreen>
 
     final String firstName = _firstNameController.text.trim();
     final String lastName = _lastNameController.text.trim();
+
+    final List<String> termParts = _selectedTerm.split(' ');
+    final String termSeason = termParts.isNotEmpty ? termParts[0] : 'Term';
+    final int termYear = termParts.length > 1
+        ? (int.tryParse(termParts[1]) ?? DateTime.now().year)
+        : DateTime.now().year;
+
     Navigator.pop(context, {
       'semesterLabel': _selectedTerm,
       'classItem': ClassItem(
+        id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
         name: _courseTitleController.text.trim(),
         teacher: '$firstName $lastName',
+        term: termSeason,
+        year: termYear,
       ),
     });
   }

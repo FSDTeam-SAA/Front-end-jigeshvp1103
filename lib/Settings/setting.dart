@@ -1,6 +1,12 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+
+import '../services/dev_auth_session.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 // Settings Screen
@@ -25,6 +31,23 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen>
     with TickerProviderStateMixin {
+  static const String _upperBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: '',
+  );
+  static const String _lowerBaseUrl = String.fromEnvironment(
+    'baseUrl',
+    defaultValue: '',
+  );
+  static const String _upperAccessToken = String.fromEnvironment(
+    'ACCESS_TOKEN',
+    defaultValue: '',
+  );
+  static const String _lowerAccessToken = String.fromEnvironment(
+    'access_token',
+    defaultValue: '',
+  );
+
   late TextEditingController _nameController;
   late FocusNode _focusNode;
 
@@ -40,13 +63,22 @@ class _SettingsScreenState extends State<SettingsScreen>
 
   // Live tracking of whether field has text
   bool _hasText = true;
+  bool _isLoadingVerifiedName = true;
+  bool _isSaving = false;
+  String _verifiedName = '';
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.initialKnownName);
+    final initialPreferredName = DevAuthSession.preferredName.isNotEmpty
+        ? DevAuthSession.preferredName
+        : widget.initialKnownName;
+    _nameController = TextEditingController(text: initialPreferredName);
     _focusNode = FocusNode();
-    _hasText = widget.initialKnownName.trim().isNotEmpty;
+    _hasText = initialPreferredName.trim().isNotEmpty;
+    _verifiedName = DevAuthSession.verifiedName.isNotEmpty
+        ? DevAuthSession.verifiedName
+        : widget.initialKnownName;
 
     _entranceController = AnimationController(
       vsync: this,
@@ -97,6 +129,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     // Listen to text changes for real-time UI updates
     _nameController.addListener(_onTextChanged);
     _entranceController.forward();
+    _loadVerifiedName();
   }
 
   void _onTextChanged() {
@@ -116,12 +149,238 @@ class _SettingsScreenState extends State<SettingsScreen>
     super.dispose();
   }
 
-  void _onSave() {
-    final String text = _nameController.text.trim();
-    if (text.isNotEmpty) {
-      HapticFeedback.lightImpact();
-      Navigator.pop(context, text);
+  Future<void> _loadVerifiedName() async {
+    try {
+      final body = await _requestSettingsEndpoint(
+        'verified-name',
+        method: 'GET',
+      );
+      final verifiedName = _extractName(
+        body,
+        fallback: widget.initialKnownName,
+        keys: const [
+          'verifiedName',
+          'verified_name',
+          'legalName',
+          'legal_name',
+          'fullName',
+          'full_name',
+          'name',
+          'preferredName',
+          'preferred_name',
+        ],
+      );
+
+      if (!mounted) return;
+      DevAuthSession.updateVerifiedName(verifiedName);
+      setState(() {
+        _verifiedName = verifiedName;
+        _isLoadingVerifiedName = false;
+      });
+    } on _SettingsApiException catch (error) {
+      _finishVerifiedNameLoad(error.message);
+    } on TimeoutException {
+      _finishVerifiedNameLoad('Verified name request timed out.');
+    } catch (error) {
+      _finishVerifiedNameLoad(error.toString());
     }
+  }
+
+  void _finishVerifiedNameLoad(String message) {
+    if (!mounted) return;
+    setState(() => _isLoadingVerifiedName = false);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _onSave() async {
+    final String text = _nameController.text.trim();
+    if (text.isEmpty || _isSaving) return;
+
+    HapticFeedback.lightImpact();
+    setState(() => _isSaving = true);
+
+    try {
+      final body = await _requestSettingsEndpoint(
+        'preferred-name',
+        method: 'PATCH',
+        payload: {'preferredName': text},
+      );
+      final savedName = _extractName(
+        body,
+        fallback: text,
+        keys: const [
+          'preferredName',
+          'preferred_name',
+          'displayName',
+          'display_name',
+          'name',
+        ],
+      );
+      DevAuthSession.updatePreferredName(savedName);
+
+      if (!mounted) return;
+      Navigator.pop(context, savedName);
+    } on _SettingsApiException catch (error) {
+      _showSaveError(error.message);
+    } on TimeoutException {
+      _showSaveError('Preferred name request timed out.');
+    } catch (error) {
+      _showSaveError('Unable to update preferred name. ${error.toString()}');
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  void _showSaveError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<Map<String, dynamic>> _requestSettingsEndpoint(
+    String endpoint, {
+    required String method,
+    Map<String, dynamic>? payload,
+  }) async {
+    final baseUrl = _resolveBaseUrl();
+    final primaryUri = Uri.parse('$baseUrl/api/settings/$endpoint');
+
+    try {
+      return await _requestSettings(
+        primaryUri,
+        method: method,
+        payload: payload,
+      );
+    } on _SettingsApiException catch (error) {
+      if (!error.canRetryWithVersion) rethrow;
+    }
+
+    return _requestSettings(
+      Uri.parse('$baseUrl/api/v1/settings/$endpoint'),
+      method: method,
+      payload: payload,
+    );
+  }
+
+  Future<Map<String, dynamic>> _requestSettings(
+    Uri uri, {
+    required String method,
+    Map<String, dynamic>? payload,
+  }) async {
+    final accessToken = _resolveAccessToken();
+    if (accessToken.isEmpty) {
+      throw const _SettingsApiException(
+        'Missing access token. Please login first.',
+      );
+    }
+
+    final headers = {
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $accessToken',
+      if (payload != null) 'Content-Type': 'application/json',
+    };
+
+    final response = switch (method) {
+      'PATCH' =>
+        await http
+            .patch(uri, headers: headers, body: jsonEncode(payload))
+            .timeout(const Duration(seconds: 15)),
+      _ =>
+        await http
+            .get(uri, headers: headers)
+            .timeout(const Duration(seconds: 15)),
+    };
+
+    final body = _decodeBody(response.body, uri);
+    final failed =
+        response.statusCode < 200 ||
+        response.statusCode >= 300 ||
+        body['success'] == false;
+
+    if (failed) {
+      throw _SettingsApiException(
+        _readMessage(body) ?? 'Settings request failed.',
+        canRetryWithVersion: response.statusCode == 404,
+      );
+    }
+
+    return body;
+  }
+
+  static String _resolveBaseUrl() {
+    if (_upperBaseUrl.isNotEmpty) return _upperBaseUrl;
+    if (_lowerBaseUrl.isNotEmpty) return _lowerBaseUrl;
+    return 'http://10.0.2.2:5000';
+  }
+
+  static String _resolveAccessToken() {
+    if (_upperAccessToken.isNotEmpty) return _upperAccessToken;
+    if (_lowerAccessToken.isNotEmpty) return _lowerAccessToken;
+    return DevAuthSession.accessToken.trim();
+  }
+
+  static Map<String, dynamic> _decodeBody(String rawBody, Uri uri) {
+    if (rawBody.trim().isEmpty) return <String, dynamic>{};
+    try {
+      final decoded = jsonDecode(rawBody);
+      return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+    } on FormatException {
+      final isHtml = rawBody.trimLeft().startsWith('<');
+      throw _SettingsApiException(
+        isHtml
+            ? 'Settings API HTML return korche (${uri.path}). baseUrl backend e ache kina check koro.'
+            : 'Settings API JSON return korche na (${uri.path}).',
+        canRetryWithVersion: true,
+      );
+    }
+  }
+
+  static String _extractName(
+    Map<String, dynamic> body, {
+    required String fallback,
+    required List<String> keys,
+  }) {
+    final data = body['data'];
+    if (data is String && data.trim().isNotEmpty) return data.trim();
+
+    final name = _findStringValue(body, keys);
+
+    return name.isNotEmpty ? name : fallback;
+  }
+
+  static String _findStringValue(dynamic value, List<String> keys) {
+    if (value is Map<String, dynamic>) {
+      for (final key in keys) {
+        final candidate = value[key];
+        if (candidate is String && candidate.trim().isNotEmpty) {
+          return candidate.trim();
+        }
+      }
+
+      for (final child in value.values) {
+        final match = _findStringValue(child, keys);
+        if (match.isNotEmpty) return match;
+      }
+    } else if (value is List) {
+      for (final child in value) {
+        final match = _findStringValue(child, keys);
+        if (match.isNotEmpty) return match;
+      }
+    }
+
+    return '';
+  }
+
+  static String? _readMessage(Map<String, dynamic> body) {
+    final message = body['message'] ?? body['error'];
+    return message is String && message.trim().isNotEmpty
+        ? message.trim()
+        : null;
   }
 
   // ── Build ──────────────────────────────────────────────────────────
@@ -264,7 +523,9 @@ class _SettingsScreenState extends State<SettingsScreen>
           SizedBox(
             width: 156 * px,
             child: Text(
-              'Verified as ${widget.initialKnownName}',
+              _isLoadingVerifiedName
+                  ? 'Loading verified name...'
+                  : 'Verified as $_verifiedName',
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12 * px,
@@ -329,6 +590,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                   child: TextField(
                     controller: _nameController,
                     focusNode: _focusNode,
+                    enabled: !_isSaving,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14 * px,
                       fontWeight: FontWeight.w400,
@@ -375,19 +637,22 @@ class _SettingsScreenState extends State<SettingsScreen>
   //   • Field is empty  → opacity 0.5, tap does nothing
   // ══════════════════════════════════════════════════════════════════
   Widget _buildCheckmarkButton(double px, double py) {
+    final bool isEnabled = _hasText && !_isSaving;
+
     return GestureDetector(
-      onTapDown: _hasText ? (_) => _buttonPressController.forward() : null,
-      onTapUp: _hasText ? (_) => _buttonPressController.reverse() : null,
-      onTapCancel: _hasText ? () => _buttonPressController.reverse() : null,
-      onTap: _hasText ? _onSave : null,
+      onTapDown: isEnabled ? (_) => _buttonPressController.forward() : null,
+      onTapUp: isEnabled ? (_) => _buttonPressController.reverse() : null,
+      onTapCancel: isEnabled ? () => _buttonPressController.reverse() : null,
+      onTap: isEnabled ? () => _onSave() : null,
       child: ScaleTransition(
         scale: _buttonPressScale,
         child: AnimatedOpacity(
-          opacity: _hasText ? 1.0 : 0.5,
+          opacity: isEnabled ? 1.0 : 0.5,
           duration: const Duration(milliseconds: 200),
           child: Container(
             width: 64 * px,
             height: 64 * px,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
@@ -404,11 +669,16 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
               ],
             ),
-            child: Icon(
-              Icons.check_rounded,
-              color: Colors.white,
-              size: 28 * px,
-            ),
+            child: _isSaving
+                ? SizedBox(
+                    width: 22 * px,
+                    height: 22 * px,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2.4,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Icon(Icons.check_rounded, color: Colors.white, size: 28 * px),
           ),
         ),
       ),
@@ -426,6 +696,16 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
+}
+
+class _SettingsApiException implements Exception {
+  final String message;
+  final bool canRetryWithVersion;
+
+  const _SettingsApiException(this.message, {this.canRetryWithVersion = false});
+
+  @override
+  String toString() => message;
 }
 
 class _PremiumTap extends StatefulWidget {
