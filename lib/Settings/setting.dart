@@ -65,6 +65,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _hasText = true;
   bool _isLoadingVerifiedName = true;
   bool _isSaving = false;
+  String _preferredName = '';
   String _verifiedName = '';
 
   @override
@@ -76,6 +77,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     _nameController = TextEditingController(text: initialPreferredName);
     _focusNode = FocusNode();
     _hasText = initialPreferredName.trim().isNotEmpty;
+    _preferredName = initialPreferredName;
     _verifiedName = DevAuthSession.verifiedName.isNotEmpty
         ? DevAuthSession.verifiedName
         : widget.initialKnownName;
@@ -221,6 +223,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       DevAuthSession.updatePreferredName(savedName);
 
       if (!mounted) return;
+      setState(() => _preferredName = savedName);
       Navigator.pop(context, savedName);
     } on _SettingsApiException catch (error) {
       _showSaveError(error.message);
@@ -466,8 +469,12 @@ class _SettingsScreenState extends State<SettingsScreen>
   // Profile Section – 156 × 144, centered, Gap 16px
   // ══════════════════════════════════════════════════════════════════
   Widget _buildProfileSection(double px, double py) {
+    final String profileName = _preferredName.trim().isNotEmpty
+        ? _preferredName.trim()
+        : widget.displayName;
+
     return SizedBox(
-      width: 156 * px,
+      width: 260 * px,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -482,7 +489,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             ),
             child: Center(
               child: Text(
-                _getInitials(widget.displayName),
+                _getInitials(profileName),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 28 * px,
                   fontWeight: FontWeight.w500,
@@ -499,7 +506,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             children: [
               Flexible(
                 child: Text(
-                  widget.displayName,
+                  profileName,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 18 * px,
                     fontWeight: FontWeight.w600,
@@ -521,7 +528,7 @@ class _SettingsScreenState extends State<SettingsScreen>
 
           // ── "Verified as ..." – 156 Fill × 15 Hug, #888888, 12px ───
           SizedBox(
-            width: 156 * px,
+            width: 260 * px,
             child: Text(
               _isLoadingVerifiedName
                   ? 'Loading verified name...'
@@ -689,7 +696,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   // Utility: extract initials from name
   // ══════════════════════════════════════════════════════════════════
   String _getInitials(String name) {
-    if (name.isEmpty) return 'JP';
+    if (name.isEmpty) return 'ST';
     final parts = name.trim().split(RegExp(r'\s+'));
     if (parts.length == 1) {
       return parts[0].substring(0, parts[0].length > 1 ? 2 : 1).toUpperCase();
