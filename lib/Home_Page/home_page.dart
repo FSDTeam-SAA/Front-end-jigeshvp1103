@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../Class_Entrance/class_entrance.dart';
 import '../Settings/setting.dart';
 import '../models/class_item.dart';
 import '../services/class_service.dart';
+import '../services/dev_auth_session.dart';
 import 'search.dart';
 
 typedef _ClassItem = ClassItem;
@@ -26,8 +28,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   String? _classesError;
   final ClassService _classService = ClassService();
 
-  String _knownName = "Jigesh Padel";
-  final String _displayName = "Jiggy Pats";
+  String _knownName = DevAuthSession.knownName;
+  String _displayName = DevAuthSession.displayName;
 
   late AnimationController _headerController;
   late Animation<double> _headerFade;
@@ -42,6 +44,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     super.initState();
 
     _pageController = PageController();
+    _syncSessionNames();
     _loadMyClasses();
 
     _headerController = AnimationController(
@@ -168,6 +171,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     });
   }
 
+  void _syncSessionNames() {
+    _knownName = DevAuthSession.knownName;
+    _displayName = DevAuthSession.displayName;
+  }
+
   @override
   Widget build(BuildContext context) {
     final double w = MediaQuery.of(context).size.width;
@@ -217,6 +225,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ).then((newName) {
                           if (newName != null && newName.trim().isNotEmpty) {
                             setState(() {
+                              DevAuthSession.updatePreferredName(newName);
+                              _displayName = DevAuthSession.displayName;
                               _knownName = newName.trim();
                             });
                           }
@@ -376,7 +386,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   String _getInitials(String name) {
-    if (name.isEmpty) return 'JP';
+    if (name.isEmpty) return 'ST';
     List<String> parts = name.trim().split(RegExp(r'\s+'));
     if (parts.length == 1) {
       return parts[0].substring(0, parts[0].length > 1 ? 2 : 1).toUpperCase();
@@ -495,6 +505,7 @@ class _SwipeToRemoveTileState extends State<_SwipeToRemoveTile>
           key: widget.key!,
           direction: DismissDirection.endToStart,
           confirmDismiss: (_) async {
+            HapticFeedback.mediumImpact();
             _animateRemove();
             return false;
           },

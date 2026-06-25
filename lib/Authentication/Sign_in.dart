@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/dev_auth_session.dart';
 import 'role_selection.dart';
+import 'temporary_login.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -36,9 +36,6 @@ class _SignInScreenState extends State<SignInScreen>
   late AnimationController _cornerController;
   late Animation<double> _cornerFade;
   late Animation<double> _cornerScale;
-  final TextEditingController _devTokenController = TextEditingController(
-    text: DevAuthSession.defaultAccessToken,
-  );
 
   @override
   void initState() {
@@ -49,15 +46,14 @@ class _SignInScreenState extends State<SignInScreen>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _titleFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _titleController, curve: Curves.easeOut),
-    );
-    _titleSlide = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _titleController, curve: Curves.easeOutCubic),
-    );
+    _titleFade = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _titleController, curve: Curves.easeOut));
+    _titleSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _titleController, curve: Curves.easeOutCubic),
+        );
 
     // ── Subtitle ──────────────────────────────────────
     _subtitleController = AnimationController(
@@ -67,12 +63,13 @@ class _SignInScreenState extends State<SignInScreen>
     _subtitleFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _subtitleController, curve: Curves.easeOut),
     );
-    _subtitleSlide = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _subtitleController, curve: Curves.easeOutCubic),
-    );
+    _subtitleSlide =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _subtitleController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
     // ── Google button ──────────────────────────────────
     _googleController = AnimationController(
@@ -82,27 +79,24 @@ class _SignInScreenState extends State<SignInScreen>
     _googleFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _googleController, curve: Curves.easeOut),
     );
-    _googleSlide = Tween<Offset>(
-      begin: const Offset(-0.15, 0),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _googleController, curve: Curves.easeOutBack),
-    );
+    _googleSlide =
+        Tween<Offset>(begin: const Offset(-0.15, 0), end: Offset.zero).animate(
+          CurvedAnimation(parent: _googleController, curve: Curves.easeOutBack),
+        );
 
     // ── Microsoft button ───────────────────────────────
     _msController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 650),
     );
-    _msFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _msController, curve: Curves.easeOut),
-    );
-    _msSlide = Tween<Offset>(
-      begin: const Offset(-0.15, 0),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _msController, curve: Curves.easeOutBack),
-    );
+    _msFade = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _msController, curve: Curves.easeOut));
+    _msSlide = Tween<Offset>(begin: const Offset(-0.15, 0), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _msController, curve: Curves.easeOutBack),
+        );
 
     // ── Corner decorations ─────────────────────────────
     _cornerController = AnimationController(
@@ -145,7 +139,7 @@ class _SignInScreenState extends State<SignInScreen>
             borderRadius: BorderRadius.circular(16 * px), // 16px radius
           ),
           child: SizedBox(
-            width: 246 * px,  // Fixed 246px width
+            width: 246 * px, // Fixed 246px width
             height: 193 * py, // Fixed 193px height
             child: Padding(
               padding: EdgeInsets.all(8 * px), // 8px padding
@@ -155,10 +149,12 @@ class _SignInScreenState extends State<SignInScreen>
                 children: [
                   // ── Warning Icon (weui:error-outlined) ──
                   Container(
-                    width: 31 * px,  // 31px width
+                    width: 31 * px, // 31px width
                     height: 31 * px, // 31px height
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFF6E00).withOpacity(0.1), // 10% opacity for soft light orange background
+                      color: const Color(0xFFFF6E00).withOpacity(
+                        0.1,
+                      ), // 10% opacity for soft light orange background
                       shape: BoxShape.circle,
                     ),
                     child: Center(
@@ -193,10 +189,10 @@ class _SignInScreenState extends State<SignInScreen>
                         'You must use the email address given to you by your school.',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14 * px,              // 14px font size
-                          fontWeight: FontWeight.w400,    // 400 Regular
+                          fontSize: 14 * px, // 14px font size
+                          fontWeight: FontWeight.w400, // 400 Regular
                           color: const Color(0xFFFF6E00), // #FF6E00
-                          height: 1.5,                    // 150% line height
+                          height: 1.5, // 150% line height
                           letterSpacing: 0,
                         ),
                       ),
@@ -211,21 +207,10 @@ class _SignInScreenState extends State<SignInScreen>
     );
   }
 
-  void _continueWithDevToken() {
-    final token = _devTokenController.text.trim();
-    if (token.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Paste a development access token first.')),
-      );
-      return;
-    }
-
-    DevAuthSession.setAccessToken(token);
+  void _openTemporaryLogin() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const RoleSelectionScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const TemporaryLoginScreen()),
     );
   }
 
@@ -236,7 +221,6 @@ class _SignInScreenState extends State<SignInScreen>
     _googleController.dispose();
     _msController.dispose();
     _cornerController.dispose();
-    _devTokenController.dispose();
     super.dispose();
   }
 
@@ -249,22 +233,21 @@ class _SignInScreenState extends State<SignInScreen>
     final double px = w / 393;
     final double py = h / 852;
 
-    final double frameLeft  = 27  * px;
-    final double frameTop   = 308 * py;
+    final double frameLeft = 27 * px;
+    final double frameTop = 308 * py;
     final double frameWidth = 340 * px;
-    final double gap        = 40  * py;
+    final double gap = 40 * py;
 
-    final double btnHeight  = 56  * py;
-    final double btnRadius  = 50.0;
+    final double btnHeight = 56 * py;
+    final double btnRadius = 50.0;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFFFFF),
       body: Stack(
         children: [
-
           // ── Corner decoration – top right ──────────────────────
           Positioned(
-            top:   MediaQuery.of(context).padding.top + 12 * py,
+            top: MediaQuery.of(context).padding.top + 12 * py,
             right: 16 * px,
             child: FadeTransition(
               opacity: _cornerFade,
@@ -273,7 +256,7 @@ class _SignInScreenState extends State<SignInScreen>
                 alignment: Alignment.topRight,
                 child: Image.asset(
                   'assets/images/top_corner.png',
-                  width:  22 * px,
+                  width: 22 * px,
                   height: 22 * px,
                   fit: BoxFit.contain,
                 ),
@@ -284,7 +267,7 @@ class _SignInScreenState extends State<SignInScreen>
           // ── Corner decoration – bottom left ────────────────────
           Positioned(
             bottom: MediaQuery.of(context).padding.bottom + 28 * py,
-            left:   16 * px,
+            left: 16 * px,
             child: FadeTransition(
               opacity: _cornerFade,
               child: ScaleTransition(
@@ -292,7 +275,7 @@ class _SignInScreenState extends State<SignInScreen>
                 alignment: Alignment.bottomLeft,
                 child: Image.asset(
                   'assets/images/bottom_corner.png',
-                  width:  20 * px,
+                  width: 20 * px,
                   height: 20 * px,
                   fit: BoxFit.contain,
                 ),
@@ -302,13 +285,12 @@ class _SignInScreenState extends State<SignInScreen>
 
           // ── Main content frame ─────────────────────────────────
           Positioned(
-            top:  frameTop,
+            top: frameTop,
             left: frameLeft,
             width: frameWidth,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-
                 // ── Title ──────────────────────────────────────────
                 FadeTransition(
                   opacity: _titleFade,
@@ -320,10 +302,10 @@ class _SignInScreenState extends State<SignInScreen>
                         'Welcome to Squarle',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.sora(
-                          fontSize:      24 * px,
-                          fontWeight:    FontWeight.w600,
-                          color:         const Color(0xFF2B88CF),
-                          height:        1.0,
+                          fontSize: 24 * px,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF2B88CF),
+                          height: 1.0,
                           letterSpacing: 0,
                         ),
                       ),
@@ -344,10 +326,10 @@ class _SignInScreenState extends State<SignInScreen>
                         'Log in with your school email',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize:      16 * px,
-                          fontWeight:    FontWeight.w400,
-                          color:         const Color(0xFF6A6A6A),
-                          height:        1.2, // 120%
+                          fontSize: 16 * px,
+                          fontWeight: FontWeight.w400,
+                          color: const Color(0xFF6A6A6A),
+                          height: 1.2, // 120%
                           letterSpacing: 0,
                         ),
                       ),
@@ -363,14 +345,14 @@ class _SignInScreenState extends State<SignInScreen>
                   child: SlideTransition(
                     position: _googleSlide,
                     child: _AnimatedSocialButton(
-                      icon:     'assets/images/google.png',
-                      label:    'Continue with Google',
-                      width:    frameWidth,
-                      height:   btnHeight,
-                      radius:   btnRadius,
+                      icon: 'assets/images/google.png',
+                      label: 'Continue with Google',
+                      width: frameWidth,
+                      height: btnHeight,
+                      radius: btnRadius,
                       iconSize: 20 * px,
-                      px:       px,
-                      onTap:    () {
+                      px: px,
+                      onTap: () {
                         // TODO: Uncomment below to show school email validation popup
                         // _showSchoolEmailDialog(context, px, py);
                         Navigator.push(
@@ -392,14 +374,14 @@ class _SignInScreenState extends State<SignInScreen>
                   child: SlideTransition(
                     position: _msSlide,
                     child: _AnimatedSocialButton(
-                      icon:     'assets/images/microsoft.png',
-                      label:    'Continue with Microsoft',
-                      width:    frameWidth,
-                      height:   btnHeight,
-                      radius:   btnRadius,
+                      icon: 'assets/images/microsoft.png',
+                      label: 'Continue with Microsoft',
+                      width: frameWidth,
+                      height: btnHeight,
+                      radius: btnRadius,
                       iconSize: 20 * px,
-                      px:       px,
-                      onTap:    () {
+                      px: px,
+                      onTap: () {
                         // TODO: Uncomment below to show school email validation popup
                         // _showSchoolEmailDialog(context, px, py);
                         Navigator.push(
@@ -415,37 +397,6 @@ class _SignInScreenState extends State<SignInScreen>
 
                 SizedBox(height: 18 * py),
 
-                TextField(
-                  controller: _devTokenController,
-                  minLines: 1,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    hintText: 'Development access token',
-                    filled: true,
-                    fillColor: const Color(0xFFF5F8FB),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 16 * px,
-                      vertical: 11 * py,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18 * px),
-                      borderSide: const BorderSide(color: Color(0xFFD8ECFC)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18 * px),
-                      borderSide: const BorderSide(color: Color(0xFF82C8FF)),
-                    ),
-                  ),
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11 * px,
-                    color: const Color(0xFF333333),
-                    height: 1.3,
-                  ),
-                ),
-
-                SizedBox(height: 10 * py),
-
                 _AnimatedSocialButton(
                   icon: 'assets/images/logo.png',
                   label: 'Use temporary login',
@@ -454,13 +405,11 @@ class _SignInScreenState extends State<SignInScreen>
                   radius: btnRadius,
                   iconSize: 18 * px,
                   px: px,
-                  onTap: _continueWithDevToken,
+                  onTap: _openTemporaryLogin,
                 ),
-
               ],
             ),
           ),
-
         ],
       ),
     );
@@ -520,21 +469,18 @@ class _AnimatedSocialButtonState extends State<_AnimatedSocialButton>
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown:    (_) => _pressController.forward(),
-      onTapUp:      (_) => _pressController.reverse(),
-      onTapCancel:  ()  => _pressController.reverse(),
-      onTap:        widget.onTap,
+      onTapDown: (_) => _pressController.forward(),
+      onTapUp: (_) => _pressController.reverse(),
+      onTapCancel: () => _pressController.reverse(),
+      onTap: widget.onTap,
       child: ScaleTransition(
         scale: _pressScale,
         child: Container(
-          width:  widget.width,
+          width: widget.width,
           height: widget.height,
           decoration: BoxDecoration(
             color: Colors.white,
-            border: Border.all(
-              color: const Color(0xFF82C8FF),
-              width: 1.0,
-            ),
+            border: Border.all(color: const Color(0xFF82C8FF), width: 1.0),
             borderRadius: BorderRadius.circular(widget.radius),
           ),
           child: Padding(
@@ -553,10 +499,10 @@ class _AnimatedSocialButtonState extends State<_AnimatedSocialButton>
                 Text(
                   widget.label,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize:      16 * widget.px,
-                    fontWeight:    FontWeight.w400,
-                    color:         const Color(0xFF000000),
-                    height:        1.2,
+                    fontSize: 16 * widget.px,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF000000),
+                    height: 1.2,
                     letterSpacing: 0,
                   ),
                 ),
