@@ -149,7 +149,11 @@ class TableService {
     return dataJson['assessmentMarked'] == true;
   }
 
-  String get currentUserId => _currentUserIdFromToken(accessToken);
+  String get currentUserId {
+    final tokenUserId = _currentUserIdFromToken(accessToken);
+    if (tokenUserId.isNotEmpty) return tokenUserId;
+    return DevAuthSession.userId.trim();
+  }
 
   Future<Map<String, dynamic>> _request(
     Uri uri, {

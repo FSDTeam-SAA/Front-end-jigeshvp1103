@@ -5,8 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:jigeshvp1103/models/class_item.dart';
 
-import '../Home_Page/home_page.dart';
-
 class AddClassScreen extends StatefulWidget {
   final List<Map<String, dynamic>> semesters;
 

@@ -5,15 +5,23 @@ class DevAuthSession {
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2YTMyMTY5OThjYTFmYmU3ZDNkN2MwNzAiLCJlbWFpbCI6InN0dWRlbnQxQGdtYWlsLmNvbSIsInJvbGUiOiJzdHVkZW50IiwiaWF0IjoxNzgyMzc1NTg2LCJleHAiOjE3ODI5ODAzODZ9.xCLB5nbe7nEUoV_goebu8qhHQiQ1v0kiyW71i73yf0I';
 
   static String _accessToken = '';
+  static String _refreshToken = '';
+  static String _userId = '';
   static String _email = '';
+  static String _role = '';
   static String _preferredName = '';
   static String _verifiedName = '';
   static String _displayName = '';
+  static DevAuthUser? _user;
 
   static String get accessToken => _accessToken;
+  static String get refreshToken => _refreshToken;
+  static String get userId => _userId;
   static String get email => _email;
+  static String get role => _role;
   static String get preferredName => _preferredName;
   static String get verifiedName => _verifiedName;
+  static DevAuthUser? get user => _user;
 
   static String get knownName => _firstNonEmpty([
     _preferredName,
@@ -42,6 +50,11 @@ class DevAuthSession {
     String? emailFallback,
   }) {
     setAccessToken(accessToken);
+    _refreshToken = _findStringValue(loginBody, const [
+      'refreshToken',
+      'refresh_token',
+    ]);
+    _applyUserJson(loginBody);
     _applyProfileJson(loginBody);
     if (_email.isEmpty && emailFallback != null) {
       _email = emailFallback.trim();
@@ -60,10 +73,14 @@ class DevAuthSession {
 
   static void clear() {
     _accessToken = '';
+    _refreshToken = '';
+    _userId = '';
     _email = '';
+    _role = '';
     _preferredName = '';
     _verifiedName = '';
     _displayName = '';
+    _user = null;
   }
 
   static void _applyTokenPayload(String token) {
@@ -82,8 +99,14 @@ class DevAuthSession {
   }
 
   static void _applyProfileJson(dynamic value) {
+    final userId = _findStringValue(value, const ['_id', 'userId', 'id']);
+    if (userId.isNotEmpty) _userId = userId;
+
     final email = _findStringValue(value, const ['email', 'schoolEmail']);
     if (email.isNotEmpty) _email = email;
+
+    final role = _findStringValue(value, const ['role']);
+    if (role.isNotEmpty) _role = role;
 
     final preferredName = _findStringValue(value, const [
       'preferredName',
@@ -114,6 +137,16 @@ class DevAuthSession {
       joinedName,
     ]);
     if (verifiedName.isNotEmpty) _verifiedName = verifiedName;
+  }
+
+  static void _applyUserJson(Map<String, dynamic> loginBody) {
+    final data = loginBody['data'];
+    final dataJson = data is Map<String, dynamic> ? data : loginBody;
+    final user = dataJson['user'];
+    if (user is! Map<String, dynamic>) return;
+
+    _user = DevAuthUser.fromJson(user);
+    _applyProfileJson(user);
   }
 
   static String _joinedName(dynamic value) {
@@ -163,5 +196,59 @@ class DevAuthSession {
     final trimmed = value.trim();
     if (!trimmed.contains('@')) return trimmed;
     return trimmed.split('@').first;
+  }
+}
+
+class DevAuthUser {
+  final String id;
+  final String oauthProvider;
+  final String email;
+  final String domain;
+  final String verifiedName;
+  final String preferredName;
+  final int preferredNameChangeCount;
+  final DateTime? dob;
+  final String role;
+  final bool isOnboarded;
+  final String accountStatus;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final Map<String, dynamic> rawJson;
+
+  const DevAuthUser({
+    required this.id,
+    required this.oauthProvider,
+    required this.email,
+    required this.domain,
+    required this.verifiedName,
+    required this.preferredName,
+    required this.preferredNameChangeCount,
+    required this.dob,
+    required this.role,
+    required this.isOnboarded,
+    required this.accountStatus,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.rawJson,
+  });
+
+  factory DevAuthUser.fromJson(Map<String, dynamic> json) {
+    return DevAuthUser(
+      id: (json['_id'] ?? json['id'] ?? json['userId'] ?? '').toString(),
+      oauthProvider: (json['oauthProvider'] ?? '').toString(),
+      email: (json['email'] ?? '').toString(),
+      domain: (json['domain'] ?? '').toString(),
+      verifiedName: (json['verifiedName'] ?? '').toString(),
+      preferredName: (json['preferredName'] ?? '').toString(),
+      preferredNameChangeCount:
+          int.tryParse('${json['preferredNameChangeCount'] ?? 0}') ?? 0,
+      dob: DateTime.tryParse('${json['dob'] ?? ''}'),
+      role: (json['role'] ?? '').toString(),
+      isOnboarded: json['isOnboarded'] == true,
+      accountStatus: (json['accountStatus'] ?? '').toString(),
+      createdAt: DateTime.tryParse('${json['createdAt'] ?? ''}'),
+      updatedAt: DateTime.tryParse('${json['updatedAt'] ?? ''}'),
+      rawJson: Map<String, dynamic>.from(json),
+    );
   }
 }

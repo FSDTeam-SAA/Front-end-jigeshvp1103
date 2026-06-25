@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../services/dev_auth_session.dart';
 import '../models/chat_message.dart';
 
 class ChatMessageBubble extends StatelessWidget {
@@ -26,9 +27,15 @@ class ChatMessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = message.userName?.trim().isNotEmpty == true
-        ? message.userName!.trim()
-        : 'Member';
+    final currentUserPreferredName = DevAuthSession.preferredName.trim();
+    final isCurrentUser =
+        message.userId.trim().isNotEmpty &&
+        message.userId.trim() == DevAuthSession.userId.trim();
+    final name = isCurrentUser && currentUserPreferredName.isNotEmpty
+        ? currentUserPreferredName
+        : message.userName?.trim().isNotEmpty == true
+            ? message.userName!.trim()
+            : 'Member';
     final timeLabel = _timeLabel(message.createdAt);
 
     return Padding(

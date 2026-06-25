@@ -28,6 +28,8 @@ class ThreadScreen extends StatefulWidget {
 }
 
 class _ThreadScreenState extends State<ThreadScreen> {
+  static bool _hasAutoShownAssessmentHint = false;
+
   late List<TableThread> _threads;
   TableThread? _assessmentHintThread;
   String? _markingThreadId;
@@ -36,6 +38,9 @@ class _ThreadScreenState extends State<ThreadScreen> {
   void initState() {
     super.initState();
     _threads = List.of(widget.threads);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeAutoShowAssessmentHint();
+    });
   }
 
   Future<void> _openCreateThread() async {
@@ -56,6 +61,25 @@ class _ThreadScreenState extends State<ThreadScreen> {
 
   void _showAssessmentHint(TableThread thread) {
     setState(() => _assessmentHintThread = thread);
+  }
+
+  void _maybeAutoShowAssessmentHint() {
+    final currentUserId = widget.currentUserId.trim();
+    if (!mounted ||
+        _hasAutoShownAssessmentHint ||
+        currentUserId.isEmpty) {
+      return;
+    }
+
+    final ownUnresolvedThreads = _threads.where(
+      (thread) =>
+          thread.createdByUserId.trim() == currentUserId &&
+          !thread.assessmentMarked,
+    );
+    if (ownUnresolvedThreads.isEmpty) return;
+
+    _hasAutoShownAssessmentHint = true;
+    _showAssessmentHint(ownUnresolvedThreads.first);
   }
 
   Future<void> _toggleAssessment() async {
@@ -91,6 +115,12 @@ class _ThreadScreenState extends State<ThreadScreen> {
     if (thread == null) return const SizedBox.shrink();
 
     final isMarking = _markingThreadId == thread.threadId;
+    final threadIndex = _threads.indexWhere(
+      (item) => item.threadId == thread.threadId,
+    );
+    final itemTop = (84 + (threadIndex < 0 ? 0 : threadIndex * 72)) * py;
+    final popoverTop = itemTop + (49 * py);
+    final iconCenterX = 22 * px + 13 * px + (31 * px / 2);
 
     return Positioned.fill(
       child: GestureDetector(
@@ -103,7 +133,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
             children: [
               Positioned(
                 left: 22 * px,
-                top: 96 * py,
+                top: itemTop,
                 right: 22 * px,
                 child: IgnorePointer(
                   child: Container(
@@ -113,7 +143,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
                       vertical: 10 * py,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.transparent,
+                      color: const Color(0xFFF5FBFF),
                       borderRadius: BorderRadius.circular(28 * px),
                       border: Border.all(color: const Color(0xFF222222)),
                     ),
@@ -154,14 +184,19 @@ class _ThreadScreenState extends State<ThreadScreen> {
               ),
               Positioned(
                 left: 23 * px,
-                top: 151 * py,
+                top: popoverTop,
                 child: GestureDetector(
                   onTap: _toggleAssessment,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Padding(
-                        padding: EdgeInsets.only(left: 20 * px),
+                        padding: EdgeInsets.only(
+                          left: (iconCenterX - 23 * px - 7 * px).clamp(
+                            0,
+                            201 * px,
+                          ).toDouble(),
+                        ),
                         child: CustomPaint(
                           size: Size(14 * px, 14 * py),
                           painter: _TrianglePainter(),
@@ -264,10 +299,10 @@ class _ThreadScreenState extends State<ThreadScreen> {
                               px: px,
                               py: py,
                               onTap: () => Navigator.pop(context, thread),
-                              onAssessmentTap:
-                                  widget.currentUserId.isNotEmpty &&
-                                      thread.createdByUserId ==
-                                          widget.currentUserId
+                              onAssessmentLongPress:
+                                  widget.currentUserId.trim().isNotEmpty &&
+                                      thread.createdByUserId.trim() ==
+                                          widget.currentUserId.trim()
                                   ? () => _showAssessmentHint(thread)
                                   : null,
                             );

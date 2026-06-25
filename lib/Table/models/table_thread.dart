@@ -20,7 +20,7 @@ class TableThread {
   factory TableThread.fromJson(Map<String, dynamic> json) {
     return TableThread(
       threadId: (json['threadId'] ?? json['_id'] ?? '').toString(),
-      createdByUserId: (json['createdByUserId'] ?? '').toString(),
+      createdByUserId: _ownerIdFromJson(json),
       title: (json['title'] ?? '').toString(),
       userContributed: json['userContributed'] is bool
           ? json['userContributed'] as bool
@@ -50,4 +50,29 @@ class TableThread {
       lastActivityAt: lastActivityAt ?? this.lastActivityAt,
     );
   }
+}
+
+String _ownerIdFromJson(Map<String, dynamic> json) {
+  for (final key in const [
+    'createdByUserId',
+    'userId',
+    'createdBy',
+    'createdByUser',
+    'ownerId',
+  ]) {
+    final value = json[key];
+    if (value == null) continue;
+
+    if (value is Map<String, dynamic>) {
+      for (final idKey in const ['_id', 'userId', 'id']) {
+        final nestedId = value[idKey]?.toString().trim() ?? '';
+        if (nestedId.isNotEmpty) return nestedId;
+      }
+    }
+
+    final id = value.toString().trim();
+    if (id.isNotEmpty) return id;
+  }
+
+  return '';
 }

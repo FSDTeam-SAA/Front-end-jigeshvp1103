@@ -25,7 +25,7 @@ class ChatThreadInfo {
     return ChatThreadInfo(
       id: (json['_id'] ?? json['threadId'] ?? '').toString(),
       tableId: (json['tableId'] ?? '').toString(),
-      createdByUserId: (json['createdByUserId'] ?? '').toString(),
+      createdByUserId: _ownerIdFromJson(json),
       title: (json['title'] ?? '').toString(),
       starterMessage: (json['starterMessage'] ?? '').toString(),
       assessmentMarked: json['assessmentMarked'] == true,
@@ -33,6 +33,31 @@ class ChatThreadInfo {
       lastActivityAt: DateTime.tryParse('${json['lastActivityAt'] ?? ''}'),
     );
   }
+}
+
+String _ownerIdFromJson(Map<String, dynamic> json) {
+  for (final key in const [
+    'createdByUserId',
+    'userId',
+    'createdBy',
+    'createdByUser',
+    'ownerId',
+  ]) {
+    final value = json[key];
+    if (value == null) continue;
+
+    if (value is Map<String, dynamic>) {
+      for (final idKey in const ['_id', 'userId', 'id']) {
+        final nestedId = value[idKey]?.toString().trim() ?? '';
+        if (nestedId.isNotEmpty) return nestedId;
+      }
+    }
+
+    final id = value.toString().trim();
+    if (id.isNotEmpty) return id;
+  }
+
+  return '';
 }
 
 class ChatThreadDetail {

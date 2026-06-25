@@ -10,7 +10,7 @@ class ThreadListItem extends StatefulWidget {
   final double px;
   final double py;
   final VoidCallback onTap;
-  final VoidCallback? onAssessmentTap;
+  final VoidCallback? onAssessmentLongPress;
 
   const ThreadListItem({
     super.key,
@@ -20,7 +20,7 @@ class ThreadListItem extends StatefulWidget {
     required this.px,
     required this.py,
     required this.onTap,
-    this.onAssessmentTap,
+    this.onAssessmentLongPress,
   });
 
   @override
@@ -72,10 +72,17 @@ class _ThreadListItemState extends State<ThreadListItem>
     final py = widget.py;
     final thread = widget.thread;
     final selected = widget.selected;
+    final currentUserId = widget.currentUserId.trim();
     final isOwnThread =
-        widget.currentUserId.isNotEmpty &&
-        thread.createdByUserId == widget.currentUserId;
-    final canMarkAssessment = isOwnThread && widget.onAssessmentTap != null;
+        currentUserId.isNotEmpty && thread.createdByUserId.trim() == currentUserId;
+    final canMarkAssessment =
+        isOwnThread && widget.onAssessmentLongPress != null;
+    final assessmentIconColor = thread.assessmentMarked
+        ? const Color(0xFF2A9DF4)
+        : const Color(0xFF909090);
+    final threadStateIconColor = selected || thread.hasUnread
+        ? const Color(0xFF2A9DF4)
+        : const Color(0xFF909090);
     final borderColor = selected
         ? const Color(0xFF2A9DF4)
         : thread.assessmentMarked
@@ -120,7 +127,8 @@ class _ThreadListItemState extends State<ThreadListItem>
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: canMarkAssessment ? widget.onAssessmentTap : null,
+                    onLongPress:
+                        canMarkAssessment ? widget.onAssessmentLongPress : null,
                     behavior: HitTestBehavior.opaque,
                     child: Container(
                       width: 31 * px,
@@ -140,9 +148,9 @@ class _ThreadListItemState extends State<ThreadListItem>
                                 ? Icons.radio_button_checked
                                 : Icons.radio_button_unchecked,
                         size: 17 * px,
-                        color: selected || thread.hasUnread
-                            ? const Color(0xFF2A9DF4)
-                            : const Color(0xFF909090),
+                        color: isOwnThread
+                            ? assessmentIconColor
+                            : threadStateIconColor,
                       ),
                     ),
                   ),
