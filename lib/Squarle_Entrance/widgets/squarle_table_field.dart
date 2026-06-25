@@ -50,8 +50,7 @@ class _SquarleTableFieldState extends State<SquarleTableField> {
 
     final position = _scrollController.position;
     final nextShowTopBlur = position.pixels > 4;
-    final nextShowBottomBlur =
-        position.pixels < position.maxScrollExtent - 4;
+    final nextShowBottomBlur = position.pixels < position.maxScrollExtent - 4;
 
     if (nextShowTopBlur == _showTopBlur &&
         nextShowBottomBlur == _showBottomBlur) {
@@ -81,33 +80,6 @@ class _SquarleTableFieldState extends State<SquarleTableField> {
             children: [
               _TableViewSection(
                 start: 1,
-                end: 13,
-                tableMap: tableMap,
-                assignedTableNumber: widget.assignedTableNumber,
-                px: px,
-                py: py,
-                onAssignedTableTap: widget.onAssignedTableTap,
-              ),
-              _TableViewSection(
-                start: 10,
-                end: 22,
-                tableMap: tableMap,
-                assignedTableNumber: widget.assignedTableNumber,
-                px: px,
-                py: py,
-                onAssignedTableTap: widget.onAssignedTableTap,
-              ),
-              _TableViewSection(
-                start: 19,
-                end: 31,
-                tableMap: tableMap,
-                assignedTableNumber: widget.assignedTableNumber,
-                px: px,
-                py: py,
-                onAssignedTableTap: widget.onAssignedTableTap,
-              ),
-              _TableViewSection(
-                start: 28,
                 end: 40,
                 tableMap: tableMap,
                 assignedTableNumber: widget.assignedTableNumber,
@@ -133,10 +105,7 @@ class _SquarleTableFieldState extends State<SquarleTableField> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.white,
-                      Colors.white.withOpacity(0),
-                    ],
+                    colors: [Colors.white, Colors.white.withValues(alpha: 0)],
                   ),
                 ),
               ),
@@ -157,10 +126,7 @@ class _SquarleTableFieldState extends State<SquarleTableField> {
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
-                    colors: [
-                      Colors.white,
-                      Colors.white.withOpacity(0),
-                    ],
+                    colors: [Colors.white, Colors.white.withValues(alpha: 0)],
                   ),
                 ),
               ),
@@ -191,39 +157,54 @@ class _TableViewSection extends StatelessWidget {
     required this.onAssignedTableTap,
   });
 
-  static const _positions = <Offset>[
-    Offset(168, 16),
-    Offset(38, 94),
-    Offset(298, 94),
-    Offset(168, 166),
-    Offset(38, 244),
-    Offset(298, 244),
-    Offset(168, 316),
-    Offset(38, 394),
-    Offset(298, 394),
-    Offset(168, 466),
-    Offset(38, 544),
-    Offset(298, 544),
-    Offset(168, 616),
-  ];
+  static const _leftX = 38.0;
+  static const _centerX = 168.0;
+  static const _rightX = 298.0;
+  static const _pairRowY = 16.0;
+  static const _singleRowY = 94.0;
+  static const _cycleHeight = 150.0;
+
+  Offset _positionForIndex(int index, int totalCount) {
+    final cycle = index ~/ 3;
+    final indexInCycle = index % 3;
+
+    if (indexInCycle == 0 && index == totalCount - 1) {
+      return Offset(_centerX, _pairRowY + cycle * _cycleHeight);
+    }
+
+    return switch (indexInCycle) {
+      0 => Offset(_leftX, _pairRowY + cycle * _cycleHeight),
+      1 => Offset(_rightX, _pairRowY + cycle * _cycleHeight),
+      _ => Offset(_centerX, _singleRowY + cycle * _cycleHeight),
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
-    final tableNumbers = List.generate(end - start + 1, (index) => start + index);
+    final tableNumbers = List.generate(
+      end - start + 1,
+      (index) => start + index,
+    );
+
+    final sectionHeight =
+        (_positionForIndex(tableNumbers.length - 1, tableNumbers.length).dy +
+            88) *
+        py;
 
     return SizedBox(
       width: double.infinity,
-      height: 704 * py,
+      height: sectionHeight,
       child: Stack(
         children: [
           for (var i = 0; i < tableNumbers.length; i++)
             Positioned(
-              left: _positions[i].dx * px,
-              top: _positions[i].dy * py,
+              left: _positionForIndex(i, tableNumbers.length).dx * px,
+              top: _positionForIndex(i, tableNumbers.length).dy * py,
               child: Builder(
                 builder: (context) {
                   final tableNumber = tableNumbers[i];
-                  final table = tableMap[tableNumber] ??
+                  final table =
+                      tableMap[tableNumber] ??
                       SquarleTable(
                         id: 'table_$tableNumber',
                         tableNumber: tableNumber,

@@ -39,6 +39,8 @@ class ToolbarControls extends StatelessWidget {
             const SizedBox(width: 8),
             _ToolbarSvgButton(
               assetPath: 'assets/icons/redo.svg',
+              iconColor: const Color(0xFF202020),
+              disabledIconColor: const Color(0xFF808080),
               selected: controller.canRedo,
               onPressed: controller.canRedo ? controller.redo : null,
             ),
@@ -48,6 +50,8 @@ class ToolbarControls extends StatelessWidget {
           children: <Widget>[
             _ToolbarSvgButton(
               assetPath: 'assets/icons/pen.svg',
+              iconColor: const Color(0xFF202020),
+              disabledIconColor: const Color(0xFF808080),
               selected: !isEraser,
               onPressed: () {
                 controller.setStrokeMode(StrokeMode.draw);
@@ -57,6 +61,8 @@ class ToolbarControls extends StatelessWidget {
             const SizedBox(width: 18),
             _ToolbarSvgButton(
               assetPath: 'assets/icons/ereaser.svg',
+              iconColor: const Color(0xFF202020),
+              disabledIconColor: const Color(0xFF808080),
               selected: isEraser,
               onPressed: () {
                 controller.setStrokeMode(StrokeMode.erase);
@@ -79,11 +85,15 @@ class _ToolbarSvgButton extends StatelessWidget {
   const _ToolbarSvgButton({
     required this.assetPath,
     required this.selected,
+    required this.iconColor,
+    required this.disabledIconColor,
     required this.onPressed,
   });
 
   final String assetPath;
   final bool selected;
+  final Color iconColor;
+  final Color disabledIconColor;
   final VoidCallback? onPressed;
 
   @override
@@ -95,7 +105,7 @@ class _ToolbarSvgButton extends StatelessWidget {
         width: 28,
         height: 28,
         colorFilter: ColorFilter.mode(
-          selected ? const Color(0xFF202020) : const Color(0xFF444444),
+          onPressed == null ? disabledIconColor : iconColor,
           BlendMode.srcIn,
         ),
       ),
@@ -132,9 +142,7 @@ class _SendDrawingButton extends StatelessWidget {
               ),
             )
           : SvgPicture.asset(
-              enabled
-                  ? 'assets/icons/send.svg'
-                  : 'assets/icons/send_faded.svg',
+              enabled ? 'assets/icons/send.svg' : 'assets/icons/send_faded.svg',
               width: 48,
               height: 48,
             ),

@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../controller/canvas_controller.dart';
@@ -100,10 +98,8 @@ class _CompletedStrokesPainter extends CustomPainter {
 }
 
 class _ActiveStrokePainter extends CustomPainter {
-  _ActiveStrokePainter({
-    required this.controller,
-    required Listenable repaint,
-  }) : super(repaint: repaint);
+  _ActiveStrokePainter({required this.controller, required Listenable repaint})
+    : super(repaint: repaint);
 
   final CanvasController controller;
 
