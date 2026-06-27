@@ -23,7 +23,7 @@ class SquarleTableIcon extends StatelessWidget {
         : 'assets/icons/table_close.png';
 
     return GestureDetector(
-      onTap: isAssigned ? onTap : null,
+      onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         width: 64 * px,

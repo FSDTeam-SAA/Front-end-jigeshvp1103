@@ -6,6 +6,7 @@ import '../models/table_thread.dart';
 class TableThreadHeader extends StatelessWidget {
   final TableThread? thread;
   final String? starterMessage;
+  final String currentUserId;
   final double px;
   final double py;
   final VoidCallback? onTap;
@@ -15,6 +16,7 @@ class TableThreadHeader extends StatelessWidget {
     required this.thread,
     required this.px,
     required this.py,
+    this.currentUserId = '',
     this.starterMessage,
     this.onTap,
   });
@@ -24,6 +26,22 @@ class TableThreadHeader extends StatelessWidget {
     final title = thread?.title ?? 'No thread yet';
     final subtitle = starterMessage?.trim();
     final text = subtitle == null || subtitle.isEmpty ? title : subtitle;
+    final currentUserId = this.currentUserId.trim();
+    final isOwnThread = thread != null &&
+        currentUserId.isNotEmpty &&
+        thread!.createdByUserId.trim() == currentUserId;
+    final icon = isOwnThread
+        ? thread!.assessmentMarked
+            ? Icons.check_box
+            : Icons.crop_square
+        : thread?.hasUnread == true
+            ? Icons.radio_button_checked
+            : Icons.radio_button_unchecked;
+    final iconColor = isOwnThread && thread!.assessmentMarked
+        ? const Color(0xFF2A9DF4)
+        : thread?.hasUnread == true
+            ? const Color(0xFF2A9DF4)
+            : const Color(0xFF8F8F8F);
 
     return GestureDetector(
       onTap: onTap,
@@ -45,12 +63,8 @@ class TableThreadHeader extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                thread?.hasUnread == true
-                    ? Icons.radio_button_checked
-                    : Icons.radio_button_unchecked,
-                color: thread?.hasUnread == true
-                    ? const Color(0xFF2A9DF4)
-                    : const Color(0xFF8F8F8F),
+                icon,
+                color: iconColor,
                 size: 17 * px,
               ),
             ),

@@ -10,7 +10,7 @@ class ThreadListItem extends StatefulWidget {
   final double px;
   final double py;
   final VoidCallback onTap;
-  final VoidCallback? onAssessmentLongPress;
+  final VoidCallback? onAssessmentTap;
 
   const ThreadListItem({
     super.key,
@@ -20,7 +20,7 @@ class ThreadListItem extends StatefulWidget {
     required this.px,
     required this.py,
     required this.onTap,
-    this.onAssessmentLongPress,
+    this.onAssessmentTap,
   });
 
   @override
@@ -73,10 +73,9 @@ class _ThreadListItemState extends State<ThreadListItem>
     final thread = widget.thread;
     final selected = widget.selected;
     final currentUserId = widget.currentUserId.trim();
-    final isOwnThread =
-        currentUserId.isNotEmpty && thread.createdByUserId.trim() == currentUserId;
-    final canMarkAssessment =
-        isOwnThread && widget.onAssessmentLongPress != null;
+    final isOwnThread = currentUserId.isNotEmpty &&
+        thread.createdByUserId.trim() == currentUserId;
+    final canMarkAssessment = isOwnThread && widget.onAssessmentTap != null;
     final assessmentIconColor = thread.assessmentMarked
         ? const Color(0xFF2A9DF4)
         : const Color(0xFF909090);
@@ -94,42 +93,42 @@ class _ThreadListItemState extends State<ThreadListItem>
       child: AnimatedBuilder(
         animation: _glow,
         builder: (context, child) {
-          return GestureDetector(
-            onTap: widget.onTap,
-            child: Container(
-              constraints: BoxConstraints(minHeight: 56 * py),
-              padding: EdgeInsets.symmetric(
-                horizontal: 13 * px,
-                vertical: 10 * py,
-              ),
-              decoration: BoxDecoration(
-                color: selected
-                    ? const Color(0xFFF5FBFF)
-                    : thread.assessmentMarked
-                        ? const Color(0xFFFBFBFB)
-                        : const Color(0xFFF4F4F4),
-                borderRadius: BorderRadius.circular(28 * px),
-                border: Border.all(color: borderColor),
-                boxShadow: thread.hasUnread && !selected
-                    ? [
-                        BoxShadow(
-                          color: Color.lerp(
-                            const Color(0x002A9DF4),
-                            const Color(0x662A9DF4),
-                            _glow.value,
-                          )!,
-                          blurRadius: 12 + (8 * _glow.value),
-                          spreadRadius: 1 + (2 * _glow.value),
-                        ),
-                      ]
-                    : const [],
-              ),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onLongPress:
-                        canMarkAssessment ? widget.onAssessmentLongPress : null,
-                    behavior: HitTestBehavior.opaque,
+          return Container(
+            constraints: BoxConstraints(minHeight: 56 * py),
+            decoration: BoxDecoration(
+              color: selected
+                  ? const Color(0xFFF5FBFF)
+                  : thread.assessmentMarked
+                      ? const Color(0xFFFBFBFB)
+                      : const Color(0xFFF4F4F4),
+              borderRadius: BorderRadius.circular(28 * px),
+              border: Border.all(color: borderColor),
+              boxShadow: thread.hasUnread && !selected
+                  ? [
+                      BoxShadow(
+                        color: Color.lerp(
+                          const Color(0x002A9DF4),
+                          const Color(0x662A9DF4),
+                          _glow.value,
+                        )!,
+                        blurRadius: 12 + (8 * _glow.value),
+                        spreadRadius: 1 + (2 * _glow.value),
+                      ),
+                    ]
+                  : const [],
+            ),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: canMarkAssessment ? widget.onAssessmentTap : null,
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      13 * px,
+                      10 * py,
+                      0,
+                      10 * py,
+                    ),
                     child: Container(
                       width: 31 * px,
                       height: 31 * px,
@@ -154,23 +153,38 @@ class _ThreadListItemState extends State<ThreadListItem>
                       ),
                     ),
                   ),
-                  SizedBox(width: 14 * px),
-                  Expanded(
-                    child: Text(
-                      thread.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13 * px,
-                        height: 1.35,
-                        color: selected
-                            ? const Color(0xFF303030)
-                            : const Color(0xFF3A3A3A),
+                ),
+                SizedBox(width: 14 * px),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: widget.onTap,
+                    behavior: HitTestBehavior.opaque,
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        0,
+                        10 * py,
+                        13 * px,
+                        10 * py,
+                      ),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          thread.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13 * px,
+                            height: 1.35,
+                            color: selected
+                                ? const Color(0xFF303030)
+                                : const Color(0xFF3A3A3A),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         },

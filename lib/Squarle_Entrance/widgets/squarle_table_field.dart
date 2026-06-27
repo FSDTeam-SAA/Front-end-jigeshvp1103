@@ -8,7 +8,7 @@ class SquarleTableField extends StatefulWidget {
   final int? assignedTableNumber;
   final double px;
   final double py;
-  final ValueChanged<SquarleTable> onAssignedTableTap;
+  final ValueChanged<SquarleTable> onTableTap;
 
   const SquarleTableField({
     super.key,
@@ -16,7 +16,7 @@ class SquarleTableField extends StatefulWidget {
     required this.assignedTableNumber,
     required this.px,
     required this.py,
-    required this.onAssignedTableTap,
+    required this.onTableTap,
   });
 
   @override
@@ -85,7 +85,7 @@ class _SquarleTableFieldState extends State<SquarleTableField> {
                 assignedTableNumber: widget.assignedTableNumber,
                 px: px,
                 py: py,
-                onAssignedTableTap: widget.onAssignedTableTap,
+                onTableTap: widget.onTableTap,
               ),
               SizedBox(height: 116 * py),
             ],
@@ -145,7 +145,7 @@ class _TableViewSection extends StatelessWidget {
   final int? assignedTableNumber;
   final double px;
   final double py;
-  final ValueChanged<SquarleTable> onAssignedTableTap;
+  final ValueChanged<SquarleTable> onTableTap;
 
   const _TableViewSection({
     required this.start,
@@ -154,7 +154,7 @@ class _TableViewSection extends StatelessWidget {
     required this.assignedTableNumber,
     required this.px,
     required this.py,
-    required this.onAssignedTableTap,
+    required this.onTableTap,
   });
 
   static const _leftX = 38.0;
@@ -215,7 +215,7 @@ class _TableViewSection extends StatelessWidget {
                     table: table,
                     isAssigned: tableNumber == assignedTableNumber,
                     px: px,
-                    onTap: () => onAssignedTableTap(table),
+                    onTap: () => onTableTap(table),
                   );
                 },
               ),

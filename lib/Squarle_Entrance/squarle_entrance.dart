@@ -45,9 +45,15 @@ class _SquarleEntranceScreenState extends State<SquarleEntranceScreen> {
     );
   }
 
-  void _handleAssignedTableTap(SquarleTable table) {
+  void _handleTableTap(SquarleTable table) {
     final sessionId = widget.joinResult.sessionId;
-    if (sessionId == null || sessionId.isEmpty || table.id.isEmpty) {
+    final tableId = table.id.trim();
+    final isPlaceholder =
+        tableId.isEmpty ||
+        tableId.startsWith('fallback_') ||
+        tableId.startsWith('table_');
+
+    if (sessionId == null || sessionId.isEmpty || isPlaceholder) {
       _showNotice('Table is not available yet.', SquarleNoticeTone.orange);
       return;
     }
@@ -128,7 +134,7 @@ class _SquarleEntranceScreenState extends State<SquarleEntranceScreen> {
                 assignedTableNumber: widget.joinResult.tableNumber,
                 px: px,
                 py: py,
-                onAssignedTableTap: _handleAssignedTableTap,
+                onTableTap: _handleTableTap,
               ),
             ),
             Positioned(
