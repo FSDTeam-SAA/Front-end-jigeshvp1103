@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class TableMessageInput extends StatefulWidget {
@@ -72,20 +73,15 @@ class _TableMessageInputState extends State<TableMessageInput> {
                   child: Center(
                     child: Transform.translate(
                       offset: Offset(0, 2 * py),
-                      child: Text(
-                        '~',
-                        textAlign: TextAlign.center,
-                        strutStyle: StrutStyle(
-                          fontSize: 28 * px,
-                          height: 1,
-                          forceStrutHeight: true,
-                        ),
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 28 * px,
-                          height: 1,
-                          color: widget.enabled
+                      child: SvgPicture.asset(
+                        'assets/icons/artboard.svg',
+                        width: 14 * px,
+                        height: 7 * py,
+                        colorFilter: ColorFilter.mode(
+                          widget.enabled
                               ? const Color(0xFF202020)
                               : const Color(0xFFBDBDBD),
+                          BlendMode.srcIn,
                         ),
                       ),
                     ),
