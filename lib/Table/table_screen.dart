@@ -108,12 +108,16 @@ class _TableScreenState extends State<TableScreen> {
           tableId: widget.tableId,
           tableService: _tableService,
           currentUserId: _tableService.currentUserId,
+          canParticipate: detail.canParticipate,
           selectedThreadId: _selectedThread?.threadId,
         ),
       ),
     );
 
-    if (selected == null) return;
+    if (selected == null) {
+      await _loadTable();
+      return;
+    }
 
     final existingIndex = detail.threads.indexWhere(
       (thread) => thread.threadId == selected.threadId,
@@ -248,6 +252,7 @@ class _TableScreenState extends State<TableScreen> {
                   : TableThreadHeader(
                       thread: _selectedThread,
                       starterMessage: _threadDetail?.thread?.starterMessage,
+                      currentUserId: _tableService.currentUserId,
                       px: px,
                       py: py,
                       onTap: _openThreadPanel,
@@ -275,14 +280,15 @@ class _TableScreenState extends State<TableScreen> {
                       py: py,
                     ),
             ),
-            TableMessageInput(
-              enabled: _canSend,
-              isSending: _isSending,
-              px: px,
-              py: py,
-              onSend: _sendMessage,
-              onOpenDrawing: _openDrawing,
-            ),
+            if (_canSend)
+              TableMessageInput(
+                enabled: true,
+                isSending: _isSending,
+                px: px,
+                py: py,
+                onSend: _sendMessage,
+                onOpenDrawing: _openDrawing,
+              ),
           ],
         ),
       ),
