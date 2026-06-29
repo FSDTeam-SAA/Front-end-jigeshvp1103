@@ -31,6 +31,8 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen>
     with TickerProviderStateMixin {
+
+      
   static const String _upperBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
     defaultValue: '',
