@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:jigeshvp1103/models/class_item.dart';
+import 'package:jigeshvp1103/services/class_service.dart';
 
 class AddClassScreen extends StatefulWidget {
   final List<Map<String, dynamic>> semesters;
@@ -22,6 +23,7 @@ class _AddClassScreenState extends State<AddClassScreen>
   final TextEditingController _courseTitleController = TextEditingController();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
+  final ClassService _classService = ClassService();
 
   late final AnimationController _entranceController;
   late final AnimationController _buttonPressController;
@@ -36,6 +38,7 @@ class _AddClassScreenState extends State<AddClassScreen>
   late String _selectedTerm;
 
   int _step = 0;
+  bool _isAdding = false;
 
   @override
   void initState() {
@@ -111,7 +114,7 @@ class _AddClassScreenState extends State<AddClassScreen>
     const List<String> seasons = ['Fall', 'Winter', 'Spring', 'Summer'];
 
     return [
-      for (int year = 2010; year <= currentYear; year++)
+      for (int year = currentYear; year <= currentYear + 1; year++)
         for (final season in seasons) '$season $year',
     ];
   }
@@ -141,10 +144,12 @@ class _AddClassScreenState extends State<AddClassScreen>
       _courseTitleController.clear();
       _firstNameController.clear();
       _lastNameController.clear();
+      _isAdding = false;
     });
   }
 
   bool get _canContinue {
+    if (_isAdding) return false;
     if (_step == 0) return true;
     if (_step == 1) return _courseTitleController.text.trim().isNotEmpty;
     return _firstNameController.text.trim().isNotEmpty &&
@@ -153,7 +158,7 @@ class _AddClassScreenState extends State<AddClassScreen>
 
   int get _activeProgressCount => _step + 1;
 
-  void _onCheckTap() {
+  Future<void> _onCheckTap() async {
     FocusScope.of(context).unfocus();
     if (!_canContinue) return;
     HapticFeedback.lightImpact();
@@ -172,16 +177,27 @@ class _AddClassScreenState extends State<AddClassScreen>
         ? (int.tryParse(termParts[1]) ?? DateTime.now().year)
         : DateTime.now().year;
 
-    Navigator.pop(context, {
-      'semesterLabel': _selectedTerm,
-      'classItem': ClassItem(
-        id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
-        name: _courseTitleController.text.trim(),
-        teacher: '$firstName $lastName',
-        term: termSeason,
-        year: termYear,
-      ),
-    });
+    final classItem = ClassItem(
+      id: '',
+      name: _courseTitleController.text.trim(),
+      teacher: '$firstName $lastName',
+      term: termSeason,
+      year: termYear,
+    );
+
+    setState(() => _isAdding = true);
+
+    try {
+      await _classService.addClassToList(classItem);
+      if (!mounted) return;
+      Navigator.pop(context, {'reload': true});
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isAdding = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
   }
 
   @override
@@ -511,11 +527,22 @@ class _AddClassScreenState extends State<AddClassScreen>
                         ),
                       ],
                     ),
-                    child: Icon(
-                      Icons.check_rounded,
-                      color: Colors.white,
-                      size: 44 * scale,
-                    ),
+                    child: _isAdding
+                        ? SizedBox(
+                            width: 24 * px,
+                            height: 24 * px,
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 2.6,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          )
+                        : Icon(
+                            Icons.check_rounded,
+                            color: Colors.white,
+                            size: 44 * scale,
+                          ),
                   ),
                 ),
               ),
