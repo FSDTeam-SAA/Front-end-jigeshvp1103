@@ -65,23 +65,7 @@ class ClassService {
     }
 
     final uri = Uri.parse('$baseUrl/api/v1/classes/my-classes');
-    final response = await _client
-        .get(
-          uri,
-          headers: {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer $accessToken',
-          },
-        )
-        .timeout(const Duration(seconds: 15));
-
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    final success = body['success'] == true;
-    if (response.statusCode < 200 || response.statusCode >= 300 || !success) {
-      throw ClassServiceException(
-        body['message'] as String? ?? 'Failed to load classes.',
-      );
-    }
+    final body = await _request(uri, method: 'GET');
 
     final data = body['data'];
     if (data is! List) return const [];
@@ -90,6 +74,90 @@ class ClassService {
         .whereType<Map<String, dynamic>>()
         .map(ClassItem.fromClassListJson)
         .toList();
+  }
+
+  Future<List<ClassItem>> searchClasses(String query) async {
+    final trimmedQuery = query.trim();
+    if (trimmedQuery.isEmpty) return const [];
+
+    final uri = Uri.parse(
+      '$baseUrl/api/v1/classes/search',
+    ).replace(queryParameters: {'q': trimmedQuery});
+    final body = await _request(uri, method: 'GET');
+    final data = body['data'];
+    if (data is! List) return const [];
+
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map(ClassItem.fromCatalogJson)
+        .where((classItem) => classItem.id.isNotEmpty)
+        .toList();
+  }
+
+  Future<void> addClassToList(ClassItem classItem) async {
+    await _request(
+      Uri.parse('$baseUrl/api/v1/classes/add'),
+      method: 'POST',
+      payload: classItem.toAddPayload(),
+    );
+  }
+
+  Future<void> removeClassFromList(String classListId) async {
+    final trimmedId = classListId.trim();
+    if (trimmedId.isEmpty) {
+      throw const ClassServiceException('Class list id is missing.');
+    }
+
+    await _request(
+      Uri.parse('$baseUrl/api/v1/classes/my-classes/$trimmedId'),
+      method: 'DELETE',
+    );
+  }
+
+  Future<Map<String, dynamic>> _request(
+    Uri uri, {
+    required String method,
+    Map<String, dynamic>? payload,
+  }) async {
+    if (accessToken.trim().isEmpty) {
+      throw const ClassServiceException(
+        'Missing access token. Log in first, or run Flutter with --dart-define=access_token=<token>.',
+      );
+    }
+
+    final headers = {
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $accessToken',
+      if (payload != null) 'Content-Type': 'application/json',
+    };
+
+    final response = switch (method) {
+      'POST' =>
+        await _client
+            .post(uri, headers: headers, body: jsonEncode(payload))
+            .timeout(const Duration(seconds: 15)),
+      'DELETE' =>
+        await _client
+            .delete(uri, headers: headers)
+            .timeout(const Duration(seconds: 15)),
+      _ =>
+        await _client
+            .get(uri, headers: headers)
+            .timeout(const Duration(seconds: 15)),
+    };
+
+    final decoded = jsonDecode(response.body);
+    final body = decoded is Map<String, dynamic>
+        ? decoded
+        : <String, dynamic>{};
+    final success = body['success'] == true;
+    if (response.statusCode < 200 || response.statusCode >= 300 || !success) {
+      throw ClassServiceException(
+        body['message'] as String? ?? 'Class request failed.',
+      );
+    }
+
+    return body;
   }
 }
 

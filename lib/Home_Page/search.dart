@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:jigeshvp1103/Add_Class/add_class.dart';
 import '../models/class_item.dart';
+import '../services/class_service.dart';
 
 // ════════════════════════════════════════════════════════════════════
 // SearchScreen  – Figma: canvas 393 × 852 px
@@ -27,6 +30,8 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
+  final ClassService _classService = ClassService();
+  Timer? _searchDebounce;
 
   late final AnimationController _entranceController;
   late final Animation<double> _entranceFade;
@@ -37,6 +42,10 @@ class _SearchScreenState extends State<SearchScreen>
   /// Grouped results: [{'label': String, 'classes': List<ClassItem>}]
   List<Map<String, dynamic>> _groupedResults = [];
   String _query = '';
+  bool _isSearching = false;
+  bool _isAdding = false;
+  String? _searchError;
+  int _searchGeneration = 0;
 
   /// Currently selected class and its semester label
   ClassItem? _selectedClass;
@@ -81,6 +90,7 @@ class _SearchScreenState extends State<SearchScreen>
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     _entranceController.dispose();
@@ -90,39 +100,85 @@ class _SearchScreenState extends State<SearchScreen>
   // ── Search logic ───────────────────────────────────────────────────
   void _onSearchChanged() {
     final raw = _searchController.text;
-    final q = raw.trim().toLowerCase();
+    final q = raw.trim();
+    _searchGeneration++;
 
     setState(() {
       _query = raw;
       // Reset selection when query changes
       _selectedClass = null;
       _selectedSemesterLabel = null;
+      _searchError = null;
 
       if (q.isEmpty) {
         _groupedResults = [];
+        _isSearching = false;
         return;
       }
 
       _groupedResults = [];
-      for (final semester in widget.semesters) {
-        final label = semester['label'] as String;
-        final classes = semester['classes'] as List<ClassItem>;
-
-        final matched = classes.where((item) {
-          return item.name.toLowerCase().contains(q) ||
-              item.teacher.toLowerCase().contains(q);
-        }).toList();
-
-        if (matched.isNotEmpty) {
-          _groupedResults.add({'label': label, 'classes': matched});
-        }
-      }
+      _isSearching = true;
     });
+
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 350),
+      () => _searchClasses(q),
+    );
+  }
+
+  Future<void> _searchClasses(String query) async {
+    final generation = ++_searchGeneration;
+
+    try {
+      final classes = await _classService.searchClasses(query);
+      if (!mounted || generation != _searchGeneration) return;
+
+      setState(() {
+        _groupedResults = _groupClassesBySemester(classes);
+        _isSearching = false;
+      });
+    } catch (error) {
+      if (!mounted || generation != _searchGeneration) return;
+
+      setState(() {
+        _groupedResults = [];
+        _searchError = error.toString();
+        _isSearching = false;
+      });
+    }
+  }
+
+  List<Map<String, dynamic>> _groupClassesBySemester(List<ClassItem> classes) {
+    final grouped = <String, List<ClassItem>>{};
+    for (final classItem in classes) {
+      grouped.putIfAbsent(classItem.semesterLabel, () => []).add(classItem);
+    }
+
+    return grouped.entries.map((entry) {
+      return {'label': entry.key, 'classes': entry.value};
+    }).toList();
   }
 
   // ── Validation logic ───────────────────────────────────────────────
   String? _getValidationError() {
     if (_selectedClass == null || _selectedSemesterLabel == null) return null;
+
+    final addedClasses = widget.addedClasses.expand((classes) => classes);
+
+    // 1. Check if already added
+    final isAlreadyAdded = addedClasses.any((classItem) {
+      final sameId =
+          classItem.id.isNotEmpty && classItem.id == _selectedClass!.id;
+      final sameClass =
+          classItem.name == _selectedClass!.name &&
+          classItem.teacher == _selectedClass!.teacher &&
+          classItem.semesterLabel == _selectedSemesterLabel;
+      return sameId || sameClass;
+    });
+    if (isAlreadyAdded) {
+      return 'This class is already added to your class list.';
+    }
 
     final semIndex = widget.semesters.indexWhere(
       (s) => s['label'] == _selectedSemesterLabel,
@@ -130,12 +186,6 @@ class _SearchScreenState extends State<SearchScreen>
     if (semIndex == -1) return null;
 
     final addedList = widget.addedClasses[semIndex];
-
-    // 1. Check if already added
-    final isAlreadyAdded = addedList.any((c) => c.name == _selectedClass!.name);
-    if (isAlreadyAdded) {
-      return 'This class is already added to your class list.';
-    }
 
     // 2. Check if list is full (5 items max)
     if (addedList.length >= 5) {
@@ -145,13 +195,25 @@ class _SearchScreenState extends State<SearchScreen>
     return null;
   }
 
-  void _addAndPop() {
-    if (_selectedClass != null && _selectedSemesterLabel != null) {
-      HapticFeedback.lightImpact();
-      Navigator.pop(context, {
-        'semesterLabel': _selectedSemesterLabel,
-        'classItem': _selectedClass,
-      });
+  Future<void> _addAndPop() async {
+    final selectedClass = _selectedClass;
+    if (selectedClass == null || _selectedSemesterLabel == null || _isAdding) {
+      return;
+    }
+
+    HapticFeedback.lightImpact();
+    setState(() => _isAdding = true);
+
+    try {
+      await _classService.addClassToList(selectedClass);
+      if (!mounted) return;
+      Navigator.pop(context, {'reload': true});
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isAdding = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
 
@@ -174,7 +236,8 @@ class _SearchScreenState extends State<SearchScreen>
     final double contentTop = headerTop + barHeight + 16 * py;
 
     final String? validationError = _getValidationError();
-    final bool canAdd = _selectedClass != null && validationError == null;
+    final bool canAdd =
+        _selectedClass != null && validationError == null && !_isAdding;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -273,16 +336,28 @@ class _SearchScreenState extends State<SearchScreen>
                                 ),
                               );
                             },
-                            child: Icon(
-                              canAdd
-                                  ? Icons.check_rounded
-                                  : Icons.close_rounded,
-                              key: ValueKey<bool>(canAdd),
-                              color: canAdd
-                                  ? Colors.white
-                                  : const Color(0xFF1A1C1E),
-                              size: 20 * px,
-                            ),
+                            child: _isAdding
+                                ? SizedBox(
+                                    key: const ValueKey('adding'),
+                                    width: 18 * px,
+                                    height: 18 * px,
+                                    child: const CircularProgressIndicator(
+                                      strokeWidth: 2.2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : Icon(
+                                    canAdd
+                                        ? Icons.check_rounded
+                                        : Icons.close_rounded,
+                                    key: ValueKey<bool>(canAdd),
+                                    color: canAdd
+                                        ? Colors.white
+                                        : const Color(0xFF1A1C1E),
+                                    size: 20 * px,
+                                  ),
                           ),
                         ),
                       ),
@@ -454,6 +529,23 @@ class _SearchScreenState extends State<SearchScreen>
           fontWeight: FontWeight.w400,
           color: const Color(0xFFBABABA),
           height: 1.5, // 150% – Figma spec
+        ),
+      );
+    }
+
+    if (_isSearching) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFF2B88CF)),
+      );
+    }
+
+    if (_searchError != null) {
+      return Text(
+        _searchError!,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 14 * px,
+          fontWeight: FontWeight.w400,
+          color: const Color(0xFFFF5A5A),
         ),
       );
     }
@@ -677,4 +769,3 @@ class _ResultEntrance extends StatelessWidget {
     );
   }
 }
-

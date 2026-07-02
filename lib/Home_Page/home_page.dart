@@ -137,11 +137,26 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }).toList();
   }
 
-  void _removeClass(int pageIndex, int itemIndex) {
+  Future<bool> _removeClass(int pageIndex, int itemIndex) async {
+    final classItem = _pages[pageIndex][itemIndex];
+
+    try {
+      await _classService.removeClassFromList(classItem.classListId);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+      return false;
+    }
+
+    if (!mounted) return false;
     setState(() {
       _pages[pageIndex].removeAt(itemIndex);
       (_semesters[pageIndex]['classes'] as List).removeAt(itemIndex);
     });
+    return true;
   }
 
   void _openSearch() {
@@ -157,6 +172,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       ),
     ).then((result) {
       if (result == null) return;
+      if (result['reload'] == true) {
+        _loadMyClasses();
+        return;
+      }
 
       final semesterLabel = result['semesterLabel'] as String;
       final classItem = result['classItem'] as ClassItem;
@@ -449,7 +468,7 @@ class _SwipeToRemoveTile extends StatefulWidget {
   final double px;
   final double py;
   final VoidCallback onTap;
-  final VoidCallback onRemove;
+  final Future<bool> Function() onRemove;
 
   const _SwipeToRemoveTile({
     super.key,
@@ -487,8 +506,11 @@ class _SwipeToRemoveTileState extends State<_SwipeToRemoveTile>
     super.dispose();
   }
 
-  void _animateRemove() {
-    _removeController.forward().then((_) => widget.onRemove());
+  Future<void> _animateRemove() async {
+    await _removeController.forward();
+    final removed = await widget.onRemove();
+    if (!mounted || removed) return;
+    await _removeController.reverse();
   }
 
   @override

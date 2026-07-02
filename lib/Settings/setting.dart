@@ -628,7 +628,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                     color: const Color(0xFF1A1C1E),
                     size: 18 * px,
                   ),
-                ),
+                ), 
               ],
             ),
           ),
