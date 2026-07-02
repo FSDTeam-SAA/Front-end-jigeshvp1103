@@ -92,6 +92,7 @@ class _TemporaryLoginScreenState extends State<TemporaryLoginScreen> {
         loginBody: body,
         emailFallback: email,
       );
+      await DevAuthSession.save();
 
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(

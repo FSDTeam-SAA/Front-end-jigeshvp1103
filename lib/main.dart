@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'Authentication/splash_screen.dart';
-void main() {
-  runApp(const MyApp());
+import 'Home_Page/home_page.dart';
+import 'services/dev_auth_session.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await DevAuthSession.restore();
+  runApp(MyApp(isLoggedIn: DevAuthSession.isLoggedIn));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isLoggedIn;
+
+  const MyApp({super.key, this.isLoggedIn = false});
 
   @override
   Widget build(BuildContext context) {
@@ -16,8 +23,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2773F2)),
         useMaterial3: true,
       ),
-      home: const SplashScreen(),
+      home: isLoggedIn ? const HomePage() : const SplashScreen(),
     );
   }
 }
-

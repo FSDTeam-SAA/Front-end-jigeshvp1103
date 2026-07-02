@@ -149,6 +149,28 @@ class _SearchScreenState extends State<SearchScreen>
     }
   }
 
+  Future<void> _refreshSearch() async {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) {
+      setState(() {
+        _groupedResults = [];
+        _searchError = null;
+        _isSearching = false;
+        _selectedClass = null;
+        _selectedSemesterLabel = null;
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearching = true;
+      _searchError = null;
+      _selectedClass = null;
+      _selectedSemesterLabel = null;
+    });
+    await _searchClasses(query);
+  }
+
   List<Map<String, dynamic>> _groupClassesBySemester(List<ClassItem> classes) {
     final grouped = <String, List<ClassItem>>{};
     for (final classItem in classes) {
@@ -378,15 +400,19 @@ class _SearchScreenState extends State<SearchScreen>
               opacity: _entranceFade,
               child: SlideTransition(
                 position: _contentSlide,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 260),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  child: KeyedSubtree(
-                    key: ValueKey<String>(
-                      '${_query.trim()}_${_groupedResults.length}',
+                child: RefreshIndicator(
+                  color: const Color(0xFF2B88CF),
+                  onRefresh: _refreshSearch,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 260),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    child: KeyedSubtree(
+                      key: ValueKey<String>(
+                        '${_query.trim()}_${_groupedResults.length}_$_isSearching',
+                      ),
+                      child: _buildContent(px, py),
                     ),
-                    child: _buildContent(px, py),
                   ),
                 ),
               ),
@@ -520,52 +546,77 @@ class _SearchScreenState extends State<SearchScreen>
 
   // ── Content builder ────────────────────────────────────────────────
   Widget _buildContent(double px, double py) {
-    // Empty state – hint text
     if (_query.isEmpty) {
-      return Text(
-        'Search by the course name and instructor',
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 13 * px,
-          fontWeight: FontWeight.w400,
-          color: const Color(0xFFBABABA),
-          height: 1.5, // 150% – Figma spec
-        ),
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          Text(
+            'Search by the course name and instructor',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13 * px,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFFBABABA),
+              height: 1.5,
+            ),
+          ),
+          SizedBox(height: 520 * py),
+        ],
       );
     }
 
     if (_isSearching) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF2B88CF)),
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          SizedBox(
+            height: 420 * py,
+            child: const Center(
+              child: CircularProgressIndicator(color: Color(0xFF2B88CF)),
+            ),
+          ),
+        ],
       );
     }
 
     if (_searchError != null) {
-      return Text(
-        _searchError!,
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 14 * px,
-          fontWeight: FontWeight.w400,
-          color: const Color(0xFFFF5A5A),
-        ),
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          Text(
+            _searchError!,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14 * px,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFFFF5A5A),
+            ),
+          ),
+          SizedBox(height: 520 * py),
+        ],
       );
     }
 
-    // No results
     if (_groupedResults.isEmpty) {
-      return Text(
-        'No classes found for "$_query"',
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 14 * px,
-          fontWeight: FontWeight.w400,
-          color: const Color(0xFF888888),
-        ),
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          Text(
+            'No classes found for "$_query"',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14 * px,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF888888),
+            ),
+          ),
+          SizedBox(height: 520 * py),
+        ],
       );
     }
 
-    // Grouped results list
     return ListView.builder(
       padding: EdgeInsets.only(bottom: 120 * py),
-      physics: const BouncingScrollPhysics(),
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: BouncingScrollPhysics(),
+      ),
       itemCount: _groupedResults.length,
       itemBuilder: (context, sectionIndex) {
         final section = _groupedResults[sectionIndex];
@@ -575,10 +626,7 @@ class _SearchScreenState extends State<SearchScreen>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Section gap (not on first section)
             if (sectionIndex > 0) SizedBox(height: 16 * py),
-
-            // Semester label
             SizedBox(
               width: 361 * px,
               height: 24 * py,
@@ -592,10 +640,7 @@ class _SearchScreenState extends State<SearchScreen>
                 ),
               ),
             ),
-
             SizedBox(height: 8 * py),
-
-            // Class cards
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -647,7 +692,6 @@ class _SearchScreenState extends State<SearchScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Class name
                           Text(
                             item.name,
                             style: GoogleFonts.plusJakartaSans(
@@ -658,7 +702,6 @@ class _SearchScreenState extends State<SearchScreen>
                             ),
                           ),
                           SizedBox(height: 4 * py),
-                          // Teacher name
                           Text(
                             item.teacher,
                             style: GoogleFonts.plusJakartaSans(

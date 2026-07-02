@@ -32,7 +32,7 @@ class _AddClassScreenState extends State<AddClassScreen>
   late final Animation<Offset> _buttonSlide;
   late final Animation<double> _buttonPressScale;
 
-  late final List<String> _terms;
+  late List<String> _terms;
   late String _selectedTerm;
 
   int _step = 0;
@@ -132,6 +132,18 @@ class _AddClassScreenState extends State<AddClassScreen>
     setState(() => _selectedTerm = term);
   }
 
+  Future<void> _refreshForm() async {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _terms = _buildAcademicTerms();
+      _selectedTerm = _defaultSelectedTerm(_terms);
+      _step = 0;
+      _courseTitleController.clear();
+      _firstNameController.clear();
+      _lastNameController.clear();
+    });
+  }
+
   bool get _canContinue {
     if (_step == 0) return true;
     if (_step == 1) return _courseTitleController.text.trim().isNotEmpty;
@@ -199,14 +211,23 @@ class _AddClassScreenState extends State<AddClassScreen>
                 final double py = screenSize.height / _figmaHeight;
                 final double scale = math.min(px, py);
 
-                return SizedBox.expand(
-                  child: Stack(
-                    children: [
-                      _buildTitle(scale, py),
-                      _buildProgress(px, py, scale),
-                      _buildAnimatedStep(screenSize, px, py, scale),
-                      _buildCheckButton(px, py, scale),
-                    ],
+                return RefreshIndicator(
+                  color: const Color(0xFF2B88CF),
+                  onRefresh: _refreshForm,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(
+                      width: screenSize.width,
+                      height: screenSize.height,
+                      child: Stack(
+                        children: [
+                          _buildTitle(scale, py),
+                          _buildProgress(px, py, scale),
+                          _buildAnimatedStep(screenSize, px, py, scale),
+                          _buildCheckButton(px, py, scale),
+                        ],
+                      ),
+                    ),
                   ),
                 );
               },

@@ -1,8 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DevAuthSession {
   static const String defaultAccessToken =
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2YTMyMTY5OThjYTFmYmU3ZDNkN2MwNzAiLCJlbWFpbCI6InN0dWRlbnQxQGdtYWlsLmNvbSIsInJvbGUiOiJzdHVkZW50IiwiaWF0IjoxNzgyMzc1NTg2LCJleHAiOjE3ODI5ODAzODZ9.xCLB5nbe7nEUoV_goebu8qhHQiQ1v0kiyW71i73yf0I';
+  static const String _storagePrefix = 'squarle_auth_';
 
   static String _accessToken = '';
   static String _refreshToken = '';
@@ -22,6 +26,7 @@ class DevAuthSession {
   static String get preferredName => _preferredName;
   static String get verifiedName => _verifiedName;
   static DevAuthUser? get user => _user;
+  static bool get isLoggedIn => _accessToken.trim().isNotEmpty;
 
   static String get knownName => _firstNonEmpty([
     _preferredName,
@@ -59,19 +64,73 @@ class DevAuthSession {
     if (_email.isEmpty && emailFallback != null) {
       _email = emailFallback.trim();
     }
+    unawaited(save());
   }
 
   static void updatePreferredName(String value) {
     final trimmed = value.trim();
-    if (trimmed.isNotEmpty) _preferredName = trimmed;
+    if (trimmed.isNotEmpty) {
+      _preferredName = trimmed;
+      unawaited(save());
+    }
   }
 
   static void updateVerifiedName(String value) {
     final trimmed = value.trim();
-    if (trimmed.isNotEmpty) _verifiedName = trimmed;
+    if (trimmed.isNotEmpty) {
+      _verifiedName = trimmed;
+      unawaited(save());
+    }
   }
 
-  static void clear() {
+  static Future<void> restore() async {
+    final prefs = await SharedPreferences.getInstance();
+    final accessToken = prefs.getString('${_storagePrefix}accessToken') ?? '';
+    if (accessToken.trim().isEmpty) return;
+
+    _accessToken = accessToken.trim();
+    _refreshToken = prefs.getString('${_storagePrefix}refreshToken') ?? '';
+    _userId = prefs.getString('${_storagePrefix}userId') ?? '';
+    _email = prefs.getString('${_storagePrefix}email') ?? '';
+    _role = prefs.getString('${_storagePrefix}role') ?? '';
+    _preferredName = prefs.getString('${_storagePrefix}preferredName') ?? '';
+    _verifiedName = prefs.getString('${_storagePrefix}verifiedName') ?? '';
+    _displayName = prefs.getString('${_storagePrefix}displayName') ?? '';
+
+    final rawUser = prefs.getString('${_storagePrefix}user');
+    if (rawUser != null && rawUser.trim().isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawUser);
+        if (decoded is Map<String, dynamic>) {
+          _user = DevAuthUser.fromJson(decoded);
+        }
+      } catch (_) {
+        _user = null;
+      }
+    }
+
+    _applyTokenPayload(_accessToken);
+  }
+
+  static Future<void> save() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('${_storagePrefix}accessToken', _accessToken);
+    await prefs.setString('${_storagePrefix}refreshToken', _refreshToken);
+    await prefs.setString('${_storagePrefix}userId', _userId);
+    await prefs.setString('${_storagePrefix}email', _email);
+    await prefs.setString('${_storagePrefix}role', _role);
+    await prefs.setString('${_storagePrefix}preferredName', _preferredName);
+    await prefs.setString('${_storagePrefix}verifiedName', _verifiedName);
+    await prefs.setString('${_storagePrefix}displayName', _displayName);
+    final user = _user;
+    if (user == null) {
+      await prefs.remove('${_storagePrefix}user');
+    } else {
+      await prefs.setString('${_storagePrefix}user', jsonEncode(user.rawJson));
+    }
+  }
+
+  static Future<void> clear() async {
     _accessToken = '';
     _refreshToken = '';
     _userId = '';
@@ -81,6 +140,19 @@ class DevAuthSession {
     _verifiedName = '';
     _displayName = '';
     _user = null;
+
+    final prefs = await SharedPreferences.getInstance();
+    await Future.wait([
+      prefs.remove('${_storagePrefix}accessToken'),
+      prefs.remove('${_storagePrefix}refreshToken'),
+      prefs.remove('${_storagePrefix}userId'),
+      prefs.remove('${_storagePrefix}email'),
+      prefs.remove('${_storagePrefix}role'),
+      prefs.remove('${_storagePrefix}preferredName'),
+      prefs.remove('${_storagePrefix}verifiedName'),
+      prefs.remove('${_storagePrefix}displayName'),
+      prefs.remove('${_storagePrefix}user'),
+    ]);
   }
 
   static void _applyTokenPayload(String token) {

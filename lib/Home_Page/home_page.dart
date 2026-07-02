@@ -242,6 +242,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             ),
                           ),
                         ).then((newName) {
+                          _syncSessionNames();
                           if (newName != null && newName.trim().isNotEmpty) {
                             setState(() {
                               DevAuthSession.updatePreferredName(newName);
@@ -249,6 +250,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               _knownName = newName.trim();
                             });
                           }
+                          _loadMyClasses();
                         });
                       },
                       child: _buildProfileAvatar(px),
@@ -305,28 +307,58 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Widget _buildClassContent(double px, double py) {
     if (_isLoadingClasses) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF2B88CF)),
+      return RefreshIndicator(
+        color: const Color(0xFF2B88CF),
+        onRefresh: _loadMyClasses,
+        child: const SingleChildScrollView(
+          physics: AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: 520,
+            child: Center(
+              child: CircularProgressIndicator(color: Color(0xFF2B88CF)),
+            ),
+          ),
+        ),
       );
     }
 
     if (_classesError != null) {
-      return _ClassMessage(
-        px: px,
-        title: 'Could not load classes',
-        message: _classesError!,
-        actionLabel: 'Try again',
-        onAction: _loadMyClasses,
+      return RefreshIndicator(
+        color: const Color(0xFF2B88CF),
+        onRefresh: _loadMyClasses,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: 520 * py,
+            child: _ClassMessage(
+              px: px,
+              title: 'Could not load classes',
+              message: _classesError!,
+              actionLabel: 'Try again',
+              onAction: _loadMyClasses,
+            ),
+          ),
+        ),
       );
     }
 
     if (_semesters.isEmpty) {
-      return _ClassMessage(
-        px: px,
-        title: 'No classes yet',
-        message: 'Classes you add will appear here.',
-        actionLabel: 'Refresh',
-        onAction: _loadMyClasses,
+      return RefreshIndicator(
+        color: const Color(0xFF2B88CF),
+        onRefresh: _loadMyClasses,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: 520 * py,
+            child: _ClassMessage(
+              px: px,
+              title: 'No classes yet',
+              message: 'Classes you add will appear here.',
+              actionLabel: 'Refresh',
+              onAction: _loadMyClasses,
+            ),
+          ),
+        ),
       );
     }
 
@@ -352,29 +384,35 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ),
             SizedBox(height: 12 * py),
             Expanded(
-              child: ListView.separated(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.only(bottom: 80 * py),
-                itemCount: items.length,
-                separatorBuilder: (_, index) => SizedBox(height: 8 * py),
-                itemBuilder: (context, i) {
-                  return _SwipeToRemoveTile(
-                    key: ValueKey(
-                      '${pageIndex}_${items[i].classListId}_${items[i].name}_$i',
-                    ),
-                    item: items[i],
-                    px: px,
-                    py: py,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            ClassEntranceScreen(classItem: items[i]),
+              child: RefreshIndicator(
+                color: const Color(0xFF2B88CF),
+                onRefresh: _loadMyClasses,
+                child: ListView.separated(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  padding: EdgeInsets.only(bottom: 80 * py),
+                  itemCount: items.length,
+                  separatorBuilder: (_, index) => SizedBox(height: 8 * py),
+                  itemBuilder: (context, i) {
+                    return _SwipeToRemoveTile(
+                      key: ValueKey(
+                        '${pageIndex}_${items[i].classListId}_${items[i].name}_$i',
                       ),
-                    ),
-                    onRemove: () => _removeClass(pageIndex, i),
-                  );
-                },
+                      item: items[i],
+                      px: px,
+                      py: py,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ClassEntranceScreen(classItem: items[i]),
+                        ),
+                      ).then((_) => _loadMyClasses()),
+                      onRemove: () => _removeClass(pageIndex, i),
+                    );
+                  },
+                ),
               ),
             ),
           ],

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
+import '../Authentication/Sign_in.dart';
 import '../services/dev_auth_session.dart';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -31,8 +32,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen>
     with TickerProviderStateMixin {
-
-      
   static const String _upperBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
     defaultValue: '',
@@ -67,6 +66,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _hasText = true;
   bool _isLoadingVerifiedName = true;
   bool _isSaving = false;
+  bool _isLoggingOut = false;
   String _preferredName = '';
   String _verifiedName = '';
 
@@ -190,6 +190,22 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
   }
 
+  Future<void> _refreshSettings() async {
+    FocusScope.of(context).unfocus();
+    final preferredName = DevAuthSession.preferredName.isNotEmpty
+        ? DevAuthSession.preferredName
+        : _preferredName;
+
+    setState(() {
+      _preferredName = preferredName;
+      _nameController.text = preferredName;
+      _hasText = preferredName.trim().isNotEmpty;
+      _isLoadingVerifiedName = true;
+    });
+
+    await _loadVerifiedName();
+  }
+
   void _finishVerifiedNameLoad(String message) {
     if (!mounted) return;
     setState(() => _isLoadingVerifiedName = false);
@@ -245,6 +261,39 @@ class _SettingsScreenState extends State<SettingsScreen>
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _logout() async {
+    if (_isLoggingOut) return;
+
+    HapticFeedback.lightImpact();
+    setState(() => _isLoggingOut = true);
+
+    final accessToken = _resolveAccessToken();
+    try {
+      if (accessToken.isNotEmpty) {
+        await http
+            .post(
+              Uri.parse('${_resolveBaseUrl()}/api/v1/auth/logout'),
+              headers: {
+                'Accept': 'application/json',
+                'Authorization': 'Bearer $accessToken',
+              },
+            )
+            .timeout(const Duration(seconds: 15));
+      }
+    } catch (_) {
+      // Local logout should still happen even if the network request fails.
+    }
+
+    await DevAuthSession.clear();
+    if (!mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const SignInScreen()),
+      (route) => false,
+    );
   }
 
   Future<Map<String, dynamic>> _requestSettingsEndpoint(
@@ -411,52 +460,67 @@ class _SettingsScreenState extends State<SettingsScreen>
           Positioned.fill(
             bottom: keyboardHeight, // push content up when keyboard shows
             child: SafeArea(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16 * px),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Figma: content starts at Top 226px from screen top
-                      SizedBox(height: (226 * py) - safeTop),
+              child: RefreshIndicator(
+                color: const Color(0xFF2B88CF),
+                onRefresh: _refreshSettings,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16 * px),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Figma: content starts at Top 226px from screen top
+                        SizedBox(height: (226 * py) - safeTop),
 
-                      // ── Profile Section (156 × 144 Hug, Gap 16px) ─────
-                      FadeTransition(
-                        opacity: _profileFade,
-                        child: SlideTransition(
-                          position: _profileSlide,
-                          child: _buildProfileSection(px, py),
+                        // ── Profile Section (156 × 144 Hug, Gap 16px) ─────
+                        FadeTransition(
+                          opacity: _profileFade,
+                          child: SlideTransition(
+                            position: _profileSlide,
+                            child: _buildProfileSection(px, py),
+                          ),
                         ),
-                      ),
 
-                      // Figma: parent frame gap = 16px
-                      SizedBox(height: 16 * py),
+                        // Figma: parent frame gap = 16px
+                        SizedBox(height: 16 * py),
 
-                      // ── Name Edit Card (361 × 128 Hug) ─────────────────
-                      FadeTransition(
-                        opacity: _cardFade,
-                        child: SlideTransition(
-                          position: _cardSlide,
-                          child: _buildNameEditCard(px, py),
+                        // ── Name Edit Card (361 × 128 Hug) ─────────────────
+                        FadeTransition(
+                          opacity: _cardFade,
+                          child: SlideTransition(
+                            position: _cardSlide,
+                            child: _buildNameEditCard(px, py),
+                          ),
                         ),
-                      ),
 
-                      // Figma: parent frame gap = 16px
-                      SizedBox(height: 16 * py),
+                        // Figma: parent frame gap = 16px
+                        SizedBox(height: 16 * py),
 
-                      // ── Checkmark Save Button (64 × 64) ────────────────
-                      FadeTransition(
-                        opacity: _buttonFade,
-                        child: SlideTransition(
-                          position: _buttonSlide,
-                          child: _buildCheckmarkButton(px, py),
+                        // ── Checkmark Save Button (64 × 64) ────────────────
+                        FadeTransition(
+                          opacity: _buttonFade,
+                          child: SlideTransition(
+                            position: _buttonSlide,
+                            child: _buildCheckmarkButton(px, py),
+                          ),
                         ),
-                      ),
 
-                      // Bottom breathing room
-                      SizedBox(height: 48 * py),
-                    ],
+                        SizedBox(height: 16 * py),
+                        FadeTransition(
+                          opacity: _buttonFade,
+                          child: SlideTransition(
+                            position: _buttonSlide,
+                            child: _buildLogoutButton(px, py),
+                          ),
+                        ),
+
+                        // Bottom breathing room
+                        SizedBox(height: 48 * py),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -628,7 +692,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                     color: const Color(0xFF1A1C1E),
                     size: 18 * px,
                   ),
-                ), 
+                ),
               ],
             ),
           ),
@@ -688,6 +752,37 @@ class _SettingsScreenState extends State<SettingsScreen>
                     ),
                   )
                 : Icon(Icons.check_rounded, color: Colors.white, size: 28 * px),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton(double px, double py) {
+    return SizedBox(
+      height: 44 * py,
+      child: TextButton.icon(
+        onPressed: _isLoggingOut ? null : _logout,
+        icon: _isLoggingOut
+            ? SizedBox(
+                width: 16 * px,
+                height: 16 * px,
+                child: const CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Color(0xFFE04F4F),
+                ),
+              )
+            : Icon(
+                Icons.logout_rounded,
+                size: 18 * px,
+                color: const Color(0xFFE04F4F),
+              ),
+        label: Text(
+          'Logout',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14 * px,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFFE04F4F),
           ),
         ),
       ),
